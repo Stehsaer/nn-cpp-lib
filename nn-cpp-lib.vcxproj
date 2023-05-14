@@ -132,12 +132,16 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main-test.cpp" />
+    <ClCompile Include="nn-dataset.cpp" />
+    <ClCompile Include="nn-file.cpp" />
     <ClCompile Include="nn-layer.cpp" />
     <ClCompile Include="nn-math.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="nn-cpp-lib.h" />
+    <ClInclude Include="nn-dataset.h" />
     <ClInclude Include="nn-exception.h" />
+    <ClInclude Include="nn-file.h" />
     <ClInclude Include="nn-layer.h" />
     <ClInclude Include="nn-math.h" />
   </ItemGroup>

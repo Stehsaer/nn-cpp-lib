@@ -68,6 +68,37 @@ namespace nn
 			return formatted_what.c_str();
 		}
 	};
+
+	// exception for memory allocation
+	class network_memory_exception :public std::exception
+	{
+	private:
+		std::string func_name;
+		unsigned int func_line;
+
+		std::string formatted_what;
+
+		size_t requested_size;
+
+		// format string for what()
+		inline void format_what()
+		{
+			formatted_what = std::format("network_memory_exception: failed to allocate size {}bytes (func:{}, line:{})", requested_size, func_name, func_line);
+		}
+
+	public:
+		network_memory_exception(size_t requested_size, std::string func_name, unsigned int func_line) : func_name(func_name), func_line(func_line), requested_size(requested_size)
+		{
+			format_what();
+		}
+
+		~network_memory_exception() throw () {}
+
+		inline virtual const char* what() const throw()
+		{
+			return formatted_what.c_str();
+		}
+	};
 }
 
 #endif

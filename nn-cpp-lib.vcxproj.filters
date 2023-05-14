@@ -24,6 +24,12 @@
     <ClCompile Include="nn-math.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="nn-dataset.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="nn-file.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="nn-exception.h">
@@ -36,6 +42,12 @@
       <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="nn-math.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="nn-dataset.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="nn-file.h">
       <Filter>Header</Filter>
     </ClInclude>
   </ItemGroup>

@@ -8,6 +8,23 @@ float nn::math::dot(float* left, float* right, size_t num)
 	return result;
 }
 
+nn::vector nn::math::one_hot(size_t max_one_hot, size_t label)
+{
+	if (label >= max_one_hot || max_one_hot == 0)
+		throw nn::network_numeric_exception("one-hot error", __FUNCTION__, __LINE__);
+
+	vector v(max_one_hot);
+	v.fill(0.0f);
+	v[label] = 1.0f;
+	return v;
+}
+
+nn::vector::vector()
+{
+	vector_size = 0;
+	vector_data = nullptr;
+}
+
 nn::vector::vector(size_t size) : vector_size(size)
 {
 	vector_data = new float[size];
@@ -44,14 +61,6 @@ nn::vector::~vector()
 {
 	if (vector_data)
 		delete[] vector_data;
-}
-
-void nn::vector::free()
-{
-	if (vector_data)
-		delete[] vector_data;
-	else
-		throw nn::network_logic_exception("vector data invalid", __FUNCTION__, __LINE__);
 }
 
 constexpr const size_t nn::vector::size()
@@ -100,6 +109,20 @@ void nn::vector::operator+=(vector& v)
 		vector_data[i] += v[i];
 }
 
+nn::vector& nn::vector::operator=(const nn::vector& src)
+{
+	if (vector_size != src.vector_size)
+	{
+		delete[] vector_data;
+		vector_size = src.vector_size;
+		vector_data = new float[vector_size];
+	}
+
+	memcpy(vector_data, src.vector_data, sizeof(float) * vector_size);
+
+	return *this;
+}
+
 std::string nn::vector::format_str()
 {
 	std::string formatted = "vector(";
@@ -146,6 +169,13 @@ nn::search_result<float> nn::vector::min()
 	return min;
 }
 
+nn::matrix::matrix()
+{
+	w = 0;
+	h = 0;
+	matrix_data = nullptr;
+}
+
 nn::matrix::matrix(size_t w, size_t h) :w(w), h(h)
 {
 	matrix_data = new float[w * h];
@@ -157,7 +187,7 @@ nn::matrix::matrix(const matrix& src)
 	h = src.h;
 
 	matrix_data = new float[w * h];
-	
+
 	memcpy(matrix_data, src.matrix_data, sizeof(float) * w * h);
 }
 
@@ -171,12 +201,6 @@ nn::matrix::matrix(matrix&& src) noexcept
 }
 
 nn::matrix::~matrix()
-{
-	if (matrix_data)
-		delete[] matrix_data;
-}
-
-void nn::matrix::free()
 {
 	if (matrix_data)
 		delete[] matrix_data;
@@ -204,6 +228,23 @@ constexpr float* nn::matrix::data()
 	return matrix_data;
 }
 
+nn::matrix& nn::matrix::operator=(const matrix& src)
+{
+	if (w != src.w || h != src.h)
+	{
+		delete[] matrix_data;
+
+		w = src.w;
+		h = src.h;
+
+		matrix_data = new float[w * h];
+	}
+
+	memcpy(matrix_data, src.matrix_data, sizeof(float) * w * h);
+
+	return *this;
+}
+
 void nn::matrix::fill(float num)
 {
 	for (size_t i = 0; i < w * h; i++)
@@ -218,4 +259,90 @@ nn::vector nn::matrix::to_vector()
 	memcpy(v.data(), matrix_data, sizeof(float) * w * h);
 
 	return v;
+}
+
+nn::tensor::tensor()
+{
+	c = w = h = 0;
+}
+
+nn::tensor::tensor(size_t c, size_t w, size_t h) :c(c), w(w), h(h)
+{
+	for (size_t i = 0; i < c; i++)
+	{
+		matrices.push_back(matrix(w, h));
+	}
+}
+
+nn::tensor::tensor(const tensor& src)
+{
+	c = src.c;
+	w = src.w;
+	h = src.h;
+
+	matrices = src.matrices;
+}
+
+nn::tensor::tensor(tensor&& src) noexcept
+{
+	c = src.c;
+	w = src.w;
+	h = src.h;
+
+	matrices.assign(src.matrices.begin(), src.matrices.end());
+}
+
+nn::tensor::~tensor()
+{
+	matrices.clear();
+}
+
+constexpr const size_t nn::tensor::channels()
+{
+	return c;
+}
+
+constexpr const size_t nn::tensor::height()
+{
+	return h;
+}
+
+constexpr const size_t nn::tensor::width()
+{
+	return w;
+}
+
+constexpr float& nn::tensor::at(size_t x, size_t y, size_t channel)
+{
+	return matrices[channel].at(x, y);
+}
+
+constexpr nn::matrix& nn::tensor::channel(size_t channel)
+{
+	return matrices[channel];
+}
+
+nn::tensor& nn::tensor::operator=(const tensor& src)
+{
+	c = src.c;
+	w = src.w;
+	h = src.h;
+
+	for (size_t i = 0; i < c; i++)
+	{
+		if (i < matrices.size()) // channel exists, try to avoid re-allocating
+			matrices[i] = src.matrices[i];
+		else // channel doesn't exist, creat a new one
+			matrices.push_back(matrix(src.matrices[i]));
+	}
+
+	matrices.shrink_to_fit(); // shrink to reduce data usage
+
+	return *this;
+}
+
+void nn::tensor::fill(float num)
+{
+	for (auto& matrix : matrices)
+		matrix.fill(num);
 }
