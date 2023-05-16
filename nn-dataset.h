@@ -38,13 +38,14 @@ namespace nn
 	public:
 		std::vector<cifar10_data*> set;
 
-		static const std::string label_name[10];
-
+		cifar10_dataset() {};
 		cifar10_dataset(const cifar10_dataset& src) = delete;
 		cifar10_dataset(cifar10_dataset&& src) = delete;
 
 		void add_source(std::string file_path);
 		std::string get_label(size_t index);
+
+		void export_image(std::string path, size_t index, int quality = 90);
 	};
 
 	//== Inline function for template struct: nn_data

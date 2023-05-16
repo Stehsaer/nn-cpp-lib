@@ -1,5 +1,7 @@
 #include "nn-math.h"
 
+#include <random>
+
 float nn::math::dot(float* left, float* right, size_t num)
 {
 	float result = 0.0f;
@@ -11,12 +13,24 @@ float nn::math::dot(float* left, float* right, size_t num)
 nn::vector nn::math::one_hot(size_t max_one_hot, size_t label)
 {
 	if (label >= max_one_hot || max_one_hot == 0)
-		throw nn::network_numeric_exception("one-hot error", __FUNCTION__, __LINE__);
+		throw nn::numeric_exception("one-hot error", __FUNCTION__, __LINE__);
 
 	vector v(max_one_hot);
 	v.fill(0.0f);
 	v[label] = 1.0f;
 	return v;
+}
+
+void nn::math::rand_vector(vector& v, float min, float max)
+{
+	std::random_device rd;
+	std::mt19937 mt(rd());
+	std::uniform_real_distribution dist(min,max);
+
+	for (size_t i = 0; i < v.size(); i++)
+	{
+		v[i] = dist(mt);
+	}
 }
 
 nn::vector::vector()
@@ -63,19 +77,19 @@ nn::vector::~vector()
 		delete[] vector_data;
 }
 
-constexpr const size_t nn::vector::size()
+const size_t nn::vector::size()
 {
 	return vector_size;
 }
 
-constexpr float& nn::vector::operator[](size_t idx)
+float& nn::vector::operator[](size_t idx)
 {
 	_ASSERT(idx < vector_size);
 
 	return vector_data[idx];
 }
 
-constexpr float* nn::vector::data()
+float* nn::vector::data()
 {
 	return vector_data;
 }
@@ -89,7 +103,7 @@ void nn::vector::fill(float num)
 float nn::vector::dot(const vector& left, const vector& right)
 {
 	if (left.vector_size != right.vector_size)
-		throw nn::network_numeric_exception("vector dimension mismatch", __FUNCTION__, __LINE__);
+		throw nn::numeric_exception("vector dimension mismatch", __FUNCTION__, __LINE__);
 
 	return nn::math::dot(left.vector_data, right.vector_data, left.vector_size);
 }
@@ -103,7 +117,7 @@ void nn::vector::operator/=(float num)
 void nn::vector::operator+=(vector& v)
 {
 	if (v.vector_size != vector_size)
-		throw nn::network_numeric_exception("vector dimension mismatch", __FUNCTION__, __LINE__);
+		throw nn::numeric_exception("vector dimension mismatch", __FUNCTION__, __LINE__);
 
 	for (size_t i = 0; i < vector_size; i++)
 		vector_data[i] += v[i];
@@ -169,6 +183,12 @@ nn::search_result<float> nn::vector::min()
 	return min;
 }
 
+void nn::vector::do_foreach(std::function<void(size_t)> func)
+{
+	for (size_t i = 0; i < vector_size; i++)
+		func(i);
+}
+
 nn::matrix::matrix()
 {
 	w = 0;
@@ -206,24 +226,24 @@ nn::matrix::~matrix()
 		delete[] matrix_data;
 }
 
-constexpr const size_t nn::matrix::width()
+const size_t nn::matrix::width()
 {
 	return w;
 }
 
-constexpr const size_t nn::matrix::height()
+const size_t nn::matrix::height()
 {
 	return h;
 }
 
-constexpr float& nn::matrix::at(size_t x, size_t y)
+float& nn::matrix::at(size_t x, size_t y)
 {
 	_ASSERT(x < w && y < h);
 
-	return matrix_data[y * h + x];
+	return matrix_data[y * w + x];
 }
 
-constexpr float* nn::matrix::data()
+float* nn::matrix::data()
 {
 	return matrix_data;
 }
@@ -259,6 +279,13 @@ nn::vector nn::matrix::to_vector()
 	memcpy(v.data(), matrix_data, sizeof(float) * w * h);
 
 	return v;
+}
+
+void nn::matrix::do_foreach(std::function<void(size_t, size_t)> func)
+{
+	for (size_t x = 0; x < w; x++)
+		for (size_t y = 0; y < h; y++)
+			func(x, y);
 }
 
 nn::tensor::tensor()
@@ -297,27 +324,27 @@ nn::tensor::~tensor()
 	matrices.clear();
 }
 
-constexpr const size_t nn::tensor::channels()
+const size_t nn::tensor::channels()
 {
 	return c;
 }
 
-constexpr const size_t nn::tensor::height()
+const size_t nn::tensor::height()
 {
 	return h;
 }
 
-constexpr const size_t nn::tensor::width()
+const size_t nn::tensor::width()
 {
 	return w;
 }
 
-constexpr float& nn::tensor::at(size_t x, size_t y, size_t channel)
+float& nn::tensor::at(size_t x, size_t y, size_t channel)
 {
 	return matrices[channel].at(x, y);
 }
 
-constexpr nn::matrix& nn::tensor::channel(size_t channel)
+nn::matrix& nn::tensor::channel(size_t channel)
 {
 	return matrices[channel];
 }

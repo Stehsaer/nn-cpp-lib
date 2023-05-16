@@ -10,7 +10,7 @@
 namespace nn
 {
 	// logic errors; eg. wrong file format
-	class network_logic_exception :public std::exception
+	class logic_exception :public std::exception
 	{
 	private:
 		std::string message;
@@ -26,12 +26,12 @@ namespace nn
 		}
 
 	public:
-		network_logic_exception(std::string msg, std::string func_name, unsigned int func_line) : message(msg), func_name(func_name), func_line(func_line)
+		logic_exception(std::string msg, std::string func_name, unsigned int func_line) : message(msg), func_name(func_name), func_line(func_line)
 		{
 			format_what();
 		}
 
-		~network_logic_exception() throw () {}
+		~logic_exception() throw () {}
 
 		inline virtual const char* what() const throw()
 		{
@@ -40,7 +40,7 @@ namespace nn
 	};
 
 	// numeric errors; eg. over-flow, under-flow, nan, out-of-range
-	class network_numeric_exception :public std::exception
+	class numeric_exception :public std::exception
 	{
 	private:
 		std::string message;
@@ -56,12 +56,12 @@ namespace nn
 		}
 
 	public:
-		network_numeric_exception(std::string msg, std::string func_name, unsigned int func_line) : message(msg), func_name(func_name), func_line(func_line)
+		numeric_exception(std::string msg, std::string func_name, unsigned int func_line) : message(msg), func_name(func_name), func_line(func_line)
 		{
 			format_what();
 		}
 
-		~network_numeric_exception() throw () {}
+		~numeric_exception() throw () {}
 
 		inline virtual const char* what() const throw()
 		{
@@ -70,7 +70,7 @@ namespace nn
 	};
 
 	// exception for memory allocation
-	class network_memory_exception :public std::exception
+	class memory_exception :public std::exception
 	{
 	private:
 		std::string func_name;
@@ -87,12 +87,12 @@ namespace nn
 		}
 
 	public:
-		network_memory_exception(size_t requested_size, std::string func_name, unsigned int func_line) : func_name(func_name), func_line(func_line), requested_size(requested_size)
+		memory_exception(size_t requested_size, std::string func_name, unsigned int func_line) : func_name(func_name), func_line(func_line), requested_size(requested_size)
 		{
 			format_what();
 		}
 
-		~network_memory_exception() throw () {}
+		~memory_exception() throw () {}
 
 		inline virtual const char* what() const throw()
 		{

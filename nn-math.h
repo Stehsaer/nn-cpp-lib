@@ -6,6 +6,7 @@
 #include "nn-exception.h"
 
 #include <vector>
+#include <functional>
 
 namespace nn
 {
@@ -34,9 +35,9 @@ namespace nn
 		vector(vector&& src) noexcept; // move construction function
 		~vector();
 
-		constexpr const size_t size(); // dimension of the vector
-		constexpr float& operator [](size_t idx); // number at the index
-		constexpr float* data(); // never use this unless necessary
+		const size_t size(); // dimension of the vector
+		float& operator [](size_t idx); // number at the index
+		float* data(); // never use this unless necessary
 
 		void fill(float num);
 
@@ -50,6 +51,8 @@ namespace nn
 
 		search_result<float> max(); // get largest element
 		search_result<float> min(); // get largest element
+		
+		void do_foreach(std::function<void(size_t)> func); // execute operation foreach element
 	};
 
 	// 2d matrix, float format
@@ -66,16 +69,18 @@ namespace nn
 		matrix(matrix&& src) noexcept;
 		~matrix();
 
-		constexpr const size_t width(); // matrix width
-		constexpr const size_t height(); // matrix height
-		constexpr float& at(size_t x, size_t y); // number at position(x,y)
-		constexpr float* data(); // never use this unless necessary
+		const size_t width(); // matrix width
+		const size_t height(); // matrix height
+		float& at(size_t x, size_t y); // number at position(x,y)
+		float* data(); // never use this unless necessary
 
 		matrix& operator =(const matrix& src);
 
 		void fill(float num);
 
 		vector to_vector();
+
+		void do_foreach(std::function<void(size_t, size_t)> func); // execute operation foreach element (x,y)
 	};
 
 	// 3d tensor structure, consisting of numerous matrices
@@ -92,11 +97,11 @@ namespace nn
 		tensor(tensor&& src) noexcept;
 		~tensor();
 
-		constexpr const size_t channels(); // tensor channels
-		constexpr const size_t height(); // tensor height
-		constexpr const size_t width(); // tensor width
-		constexpr float& at(size_t x, size_t y, size_t channel); // number at (channel,x,y)
-		constexpr matrix& channel(size_t channel); // returns the matrix at given channel
+		const size_t channels(); // tensor channels
+		const size_t height(); // tensor height
+		const size_t width(); // tensor width
+		float& at(size_t x, size_t y, size_t channel); // number at (channel,x,y)
+		matrix& channel(size_t channel); // returns the matrix at given channel
 
 		tensor& operator =(const tensor& src);
 
@@ -112,6 +117,7 @@ namespace nn
 		//== Helper functions
 
 		vector one_hot(size_t max_one_hot, size_t label); // one-hot helper for vector
+		void rand_vector(vector& v, float min, float max);
 	}
 }
 

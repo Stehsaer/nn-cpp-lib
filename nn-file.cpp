@@ -39,7 +39,7 @@ nn::file::file_binary_data nn::file::file_read_bytes(std::string path)
         }
         catch (std::bad_alloc&)
         {
-            throw network_memory_exception(size, __FUNCTION__, __LINE__);
+            throw memory_exception(size, __FUNCTION__, __LINE__);
         }
 
         stream.read((char*)data, size);
