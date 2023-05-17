@@ -48,8 +48,10 @@ namespace nn
 		public:
 			vector_input(size_t size);
 
-			void input_data(vector& data);
-			const vector& get_input();
+			void input_data(const vector & data);
+
+			vector& get_input();
+			size_t get_size();
 		};
 	}
 
@@ -58,20 +60,26 @@ namespace nn
 		struct linear_layer
 		{
 		private:
-			vector value, error;
-			vector* weights;
-			size_t layer_size;
+			vector value, gradient;
+			std::vector<vector> weights;
+			size_t num_weights, num_neurons;
+			float bias;
 
 		public:
-			linear_layer(size_t size);
+			linear_layer(size_t size, size_t weight_size); // size: number of neurons; weight_size: number of weights of each neuron
 
-			void forward(input_layer::vector_input& prev);
-			void forward(linear_layer& prev);
+			void forward(input_layer::vector_input* prev, const activate_func* func);
+			void forward(linear_layer* prev, activate_func* func);
+
+			void backward(optimizer::vector_optimizer* optimizer);
+			void backward(linear_layer* last);
 
 			vector& get_value();
-			vector& get_error();
-			vector& get_weight(size_t index);
+			vector& get_gradient();
+			vector& get_weight(size_t index); // weight vector for neuron[index]
 			size_t get_size();
+
+			void rand_weights(float min, float max);
 		};
 	}
 
@@ -84,9 +92,12 @@ namespace nn
 			size_t optimizer_size = 0;
 
 		public:
-			const vector& get_gradient();
-			const vector& get_output();
+			vector& get_gradient();
+			vector& get_output();
+			size_t get_size();
 			void push_target(vector& target);
+
+			virtual void forward_and_grad(hidden_layer::linear_layer& layer) = 0;
 		};
 
 		struct mse_optimizer :vector_optimizer
@@ -102,7 +113,7 @@ namespace nn
 		public:
 			softmax_optimizer(size_t size);
 
-			void forward_and_grad();
+			void forward_and_grad(hidden_layer::linear_layer& layer);
 		};
 	}
 }

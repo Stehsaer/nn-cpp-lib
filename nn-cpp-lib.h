@@ -5,6 +5,7 @@
 #include "nn-math.h"
 #include "nn-file.h"
 #include "nn-dataset.h"
+#include "nn-activate-function.h"
 #include "nn-layer.h"
 
 #endif

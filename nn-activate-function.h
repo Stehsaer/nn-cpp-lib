@@ -6,29 +6,32 @@ namespace nn
 	class activate_func
 	{
 	public:
-		virtual float forward(float x) = 0;
-		virtual float backward(float x) = 0;
+		virtual float forward(float x) const = 0;
+		virtual float backward(float x) const = 0;
 	};
 
-	class relu_func :activate_func
+	class relu_func :public activate_func
 	{
 	public:
-		float forward(float x);
-		float backward(float x);
+		relu_func() {};
+		float forward(float x) const;
+		float backward(float x) const;
 	};
 
-	class leaky_relu_func :activate_func
+	class leaky_relu_func :public activate_func
 	{
 	public:
-		float forward(float x);
-		float backward(float x);
+		leaky_relu_func(){}
+		float forward(float x) const;
+		float backward(float x) const;
 	};
 
-	class sigmoid_func :activate_func
+	class sigmoid_func :public activate_func
 	{
 	public:
-		float forward(float x);
-		float backward(float x);
+		sigmoid_func(){}
+		float forward(float x) const;
+		float backward(float x) const;
 	};
 }
 

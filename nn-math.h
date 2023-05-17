@@ -28,31 +28,32 @@ namespace nn
 		float* vector_data;
 
 	public:
-		vector();
-		vector(size_t size); // initialize using size
+		vector(); // initialize a placeholder with a size of 0 (invalid vector, don't use unless necessary)
+		vector(size_t size); // initialize using size. Don't forget to initialize values manually or using fill()
 		vector(std::initializer_list<float> initializer); // initialize using initializer_list
 		vector(const vector& src); // copy construction function
 		vector(vector&& src) noexcept; // move construction function
 		~vector();
 
-		const size_t size(); // dimension of the vector
-		float& operator [](size_t idx); // number at the index
+		size_t size() const; // dimension of the vector
+		float& operator [](size_t idx) const; // number at the index
 		float* data(); // never use this unless necessary
 
 		void fill(float num);
 
-		static float dot(const vector& left, const vector& right); // dot product
+		static float dot(vector& left, vector& right); // dot product
 		void operator /=(float num); // calculate average
 		void operator +=(vector& v); // add per element
 
 		vector& operator =(const vector& src);
 
-		std::string format_str(); // get formatted string as format: "vector(0.0,0.0...)"
+		std::string format_str() const; // get formatted string as format: "vector(0.0,0.0...)"
 
-		search_result<float> max(); // get largest element
-		search_result<float> min(); // get largest element
+		search_result<float> max() const; // get largest element
+		search_result<float> min() const; // get largest element
+		float sum() const;
 		
-		void do_foreach(std::function<void(size_t)> func); // execute operation foreach element
+		void for_each(std::function<void(size_t, float&)> func); // execute operation foreach element
 	};
 
 	// 2d matrix, float format
@@ -69,18 +70,19 @@ namespace nn
 		matrix(matrix&& src) noexcept;
 		~matrix();
 
-		const size_t width(); // matrix width
-		const size_t height(); // matrix height
+		size_t width() const; // matrix width
+		size_t height() const; // matrix height
 		float& at(size_t x, size_t y); // number at position(x,y)
+		float at(size_t x, size_t y) const;
 		float* data(); // never use this unless necessary
 
 		matrix& operator =(const matrix& src);
 
 		void fill(float num);
 
-		vector to_vector();
+		vector to_vector() const;
 
-		void do_foreach(std::function<void(size_t, size_t)> func); // execute operation foreach element (x,y)
+		void for_each(std::function<void(size_t, size_t, float&)> func); // execute operation foreach element (x,y)
 	};
 
 	// 3d tensor structure, consisting of numerous matrices
@@ -97,10 +99,11 @@ namespace nn
 		tensor(tensor&& src) noexcept;
 		~tensor();
 
-		const size_t channels(); // tensor channels
-		const size_t height(); // tensor height
-		const size_t width(); // tensor width
+		size_t channels() const; // tensor channels
+		size_t height() const; // tensor height
+		size_t width() const; // tensor width
 		float& at(size_t x, size_t y, size_t channel); // number at (channel,x,y)
+		float at(size_t x, size_t y, size_t channel) const;
 		matrix& channel(size_t channel); // returns the matrix at given channel
 
 		tensor& operator =(const tensor& src);
