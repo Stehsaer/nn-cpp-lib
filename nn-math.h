@@ -46,6 +46,7 @@ namespace nn
 		void operator +=(vector& v); // add per element
 
 		vector& operator =(const vector& src);
+		vector& operator =(std::initializer_list<float> list);
 
 		std::string format_str() const; // get formatted string as format: "vector(0.0,0.0...)"
 
@@ -66,6 +67,7 @@ namespace nn
 	public:
 		matrix();
 		matrix(size_t w, size_t h);
+		matrix(size_t w, size_t h, std::initializer_list<float> val);
 		matrix(const matrix& src);
 		matrix(matrix&& src) noexcept;
 		~matrix();
@@ -76,11 +78,15 @@ namespace nn
 		float at(size_t x, size_t y) const;
 		float* data(); // never use this unless necessary
 
+		bool valid();
+
 		matrix& operator =(const matrix& src);
 
 		void fill(float num);
 
 		vector to_vector() const;
+		void export_image(std::string path, int quality = 90);
+		static matrix matrix_from_image(std::string path);
 
 		void for_each(std::function<void(size_t, size_t, float&)> func); // execute operation foreach element (x,y)
 	};
@@ -108,6 +114,9 @@ namespace nn
 
 		tensor& operator =(const tensor& src);
 
+		void export_image(std::string path, int quality = 90);
+		static tensor tensor_from_image(std::string path);
+
 		void fill(float num);
 	};
 
@@ -121,6 +130,13 @@ namespace nn
 
 		vector one_hot(size_t max_one_hot, size_t label); // one-hot helper for vector
 		void rand_vector(vector& v, float min, float max);
+		void rand_matrix(matrix& m, float min, float max);
+		float rand_float(float min, float max);
+
+		//== Convolution
+
+		nn::matrix conv_2d(const nn::matrix& src, const nn::matrix& kernal, size_t stride = 1, size_t padding = 0);
+		nn::tensor conv_3d(const nn::tensor&& src, const nn::tensor& kernal, size_t stride = 1, size_t padding = 0);
 	}
 }
 

@@ -31,7 +31,7 @@ nn::file::file_binary_data nn::file::file_read_bytes(std::string path)
     {
         size_t size = file_size(path);
 
-        unsigned char* data;
+        unsigned char* data = nullptr;
         
         try
         {
@@ -104,4 +104,9 @@ bool nn::file::file_write_string(std::string path, std::string content)
     }
     else
         return false;
+}
+
+nn::file::file_binary_data::~file_binary_data()
+{
+    delete[] data;
 }

@@ -22,8 +22,9 @@ namespace nn
 	namespace hidden_layer
 	{
 		struct linear_layer;
-		struct conv_linaer_adapter_layer;
-		struct conv_layer;
+		struct conv2_linear_adapter_layer;
+		struct conv2_layer;
+		struct conv3_layer;
 		struct relu_layer;
 		struct maxpool_layer;
 	}
@@ -48,10 +49,43 @@ namespace nn
 		public:
 			vector_input(size_t size);
 
-			void input_data(const vector & data);
+			void push_input(const vector & data);
 
-			vector& get_input();
+			const vector& get_input();
 			size_t get_size();
+		};
+
+		struct matrix_input
+		{
+		private:
+			matrix input;
+			size_t input_width, input_height;
+
+		public:
+			matrix_input(size_t w, size_t h);
+
+			void push_input(const matrix& data);
+
+			const matrix& get_input();
+			size_t get_height();
+			size_t get_width();
+		};
+
+		struct tensor_input
+		{
+		private:
+			tensor input;
+			size_t input_channel, input_width, input_height;
+
+		public:
+			tensor_input(size_t w, size_t h, size_t c);
+
+			void push_input(const tensor& data);
+
+			const tensor& get_input();
+			size_t get_channel();
+			size_t get_height();
+			size_t get_width();
 		};
 	}
 
@@ -69,10 +103,13 @@ namespace nn
 			linear_layer(size_t size, size_t weight_size); // size: number of neurons; weight_size: number of weights of each neuron
 
 			void forward(input_layer::vector_input* prev, const activate_func* func);
-			void forward(linear_layer* prev, activate_func* func);
+			void forward(linear_layer* prev, const activate_func* func);
 
 			void backward(optimizer::vector_optimizer* optimizer);
 			void backward(linear_layer* last);
+
+			void update_weights(input_layer::vector_input* prev, const activate_func* func, float learning_rate);
+			void update_weights(hidden_layer::linear_layer* prev, const activate_func* func, float learning_rate);
 
 			vector& get_value();
 			vector& get_gradient();
@@ -80,6 +117,28 @@ namespace nn
 			size_t get_size();
 
 			void rand_weights(float min, float max);
+		};
+
+		struct conv2_layer
+		{
+		private:
+			matrix kernal;
+			size_t stride, padding;
+			size_t w, h;
+
+		public:
+			conv2_layer(size_t w, size_t h, size_t stride = 1, size_t padding = 0);
+
+			void forward(input_layer::matrix_input* prev);
+			void forward(hidden_layer::conv2_layer* prev);
+			void forward(hidden_layer::relu_layer* prev);
+			void forward(hidden_layer::maxpool_layer* prev);
+			void forward(hidden_layer::conv3_layer* prev);
+
+			void backward(hidden_layer::conv2_linear_adapter_layer last);
+			void backward(hidden_layer::conv2_layer* last);
+			void backward(hidden_layer::relu_layer* last);
+			void backward(hidden_layer::maxpool_layer* last);
 		};
 	}
 
@@ -90,14 +149,17 @@ namespace nn
 		protected:
 			vector output, gradient, target;
 			size_t optimizer_size = 0;
+			float loss;
 
 		public:
 			vector& get_gradient();
 			vector& get_output();
 			size_t get_size();
-			void push_target(vector& target);
+			float get_loss();
+			void push_target(const vector & target);
 
 			virtual void forward_and_grad(hidden_layer::linear_layer& layer) = 0;
+			virtual void forward(hidden_layer::linear_layer& layer) = 0;
 		};
 
 		struct mse_optimizer :vector_optimizer
@@ -106,6 +168,7 @@ namespace nn
 			mse_optimizer(size_t size);
 
 			void forward_and_grad(hidden_layer::linear_layer& layer);
+			void forward(hidden_layer::linear_layer& layer);
 		};
 
 		struct softmax_optimizer :vector_optimizer
@@ -114,6 +177,7 @@ namespace nn
 			softmax_optimizer(size_t size);
 
 			void forward_and_grad(hidden_layer::linear_layer& layer);
+			void forward(hidden_layer::linear_layer& layer);
 		};
 	}
 }

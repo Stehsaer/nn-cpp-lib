@@ -1,3 +1,13 @@
+#define _CRT_SECURE_NO_WARNINGS
+
+#define STB_IMAGE_WRITE_STATIC
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb-img/stb_image_write.h"
+
+#define STB_IMAGE_STATIC
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb-img/stb_image.h"
+
 #include "nn-math.h"
 
 #include <random>
@@ -31,6 +41,57 @@ void nn::math::rand_vector(vector& v, float min, float max)
 	{
 		v[i] = dist(mt);
 	}
+}
+
+void nn::math::rand_matrix(matrix& m, float min, float max)
+{
+	std::random_device rd;
+	std::mt19937 mt(rd());
+	std::uniform_real_distribution dist(min, max);
+
+	for (size_t i = 0; i < m.width() * m.height(); i++)
+	{
+		m.data()[i] = dist(mt);
+	}
+}
+
+float nn::math::rand_float(float min, float max)
+{
+	std::random_device rd;
+	std::mt19937 mt(rd());
+	std::uniform_real_distribution dist(min, max);
+	return dist(mt);
+}
+
+nn::matrix nn::math::conv_2d(const nn::matrix& src, const nn::matrix& kernal, size_t stride, size_t padding)
+{
+	// check input parameters
+	if (kernal.width() > src.width() || kernal.height() > src.height())
+		throw nn::numeric_exception("(conv)kernal bigger than source", __FUNCTION__, __LINE__);
+	if (stride == 0)
+		throw nn::numeric_exception("(conv)stride should be larger than 0", __FUNCTION__, __LINE__);
+
+	// calculate height and width
+	size_t output_w = (src.width() - kernal.width() + padding * 2) / stride;
+	size_t output_h = (src.height() - kernal.height() + padding * 2) / stride;
+
+	nn::matrix out(output_w, output_h);
+
+	// do conv
+	out.for_each([&src, &kernal, stride, padding](size_t x, size_t y, float& num)
+		{
+			num = 0.0f;
+			
+			for(size_t _x = 0; _x < kernal.width(); _x++)
+				for (size_t _y = 0; _y < kernal.height(); _y++)
+				{
+					size_t src_x = _x + x * stride - padding;
+					size_t src_y = _y + y * stride - padding;
+					num += kernal.at(_x, _y) * (src_x < 0 || src_x >= src.width() || src_y < 0 || src_y >= src.height() ? 0.0f : src.at(src_x, src_y));
+				}
+		});
+
+	return out;
 }
 
 nn::vector::vector()
@@ -137,6 +198,23 @@ nn::vector& nn::vector::operator=(const nn::vector& src)
 	return *this;
 }
 
+nn::vector& nn::vector::operator =(std::initializer_list<float> list)
+{
+	if (list.size() != vector_size)
+	{
+		delete[] vector_data;
+		vector_size = list.size();
+		vector_data = new float[vector_size];
+	}
+
+	for (size_t i = 0; i < vector_size; i++)
+	{
+		vector_data[i] = *(list.begin() + i);
+	}
+
+	return *this;
+}
+
 std::string nn::vector::format_str() const
 {
 	std::string formatted = "vector(";
@@ -211,6 +289,18 @@ nn::matrix::matrix(size_t w, size_t h) :w(w), h(h)
 	matrix_data = new float[w * h];
 }
 
+nn::matrix::matrix(size_t w, size_t h, std::initializer_list<float> val) : w(w), h(h)
+{
+	if (val.size() != w * h)
+		throw nn::numeric_exception("initializer value count mismatch!", __FUNCTION__, __LINE__);
+	matrix_data = new float[w * h];
+
+	for (size_t i = 0; i < w * h; i++)
+	{
+		matrix_data[i] = *(val.begin() + i);
+	}
+}
+
 nn::matrix::matrix(const matrix& src)
 {
 	w = src.w;
@@ -265,6 +355,11 @@ float* nn::matrix::data()
 	return matrix_data;
 }
 
+bool nn::matrix::valid()
+{
+	return matrix_data != nullptr && w > 0 && h > 0;
+}
+
 nn::matrix& nn::matrix::operator=(const matrix& src)
 {
 	if (w != src.w || h != src.h)
@@ -296,6 +391,40 @@ nn::vector nn::matrix::to_vector() const
 	memcpy(v.data(), matrix_data, sizeof(float) * w * h);
 
 	return v;
+}
+
+void nn::matrix::export_image(std::string path, int quality)
+{
+	if (w > 65535 || h > 65535)
+		throw nn::numeric_exception("width or height too large", __FUNCTION__, __LINE__);
+
+	std::unique_ptr<unsigned char> dat(new unsigned char[w * h]);
+
+	for (size_t i = 0; i < w * h; i++)
+	{
+		dat.get()[i] = unsigned char(matrix_data[i] * 255.0f);
+	}
+
+	stbi_write_jpg(path.c_str(), w, h, 1, dat.get(), quality);
+}
+
+nn::matrix nn::matrix::matrix_from_image(std::string path)
+{
+	int x, y, comp;
+	unsigned char* data = stbi_load(path.c_str(), &x, &y, &comp, 1);
+	if (!data)
+		throw nn::logic_exception("read file failed", __FUNCTION__, __LINE__);
+
+	matrix m(x, y);
+
+	for (size_t i = 0; i < x * y; i++)
+	{
+		m.data()[i] = data[i] / 255.0f;
+	}
+
+	free(data);
+
+	return m;
 }
 
 void nn::matrix::for_each(std::function<void(size_t, size_t, float&)> func)
@@ -363,7 +492,7 @@ float& nn::tensor::at(size_t x, size_t y, size_t channel)
 
 float nn::tensor::at(size_t x, size_t y, size_t channel) const
 {
-	return matrices[channel].at(x,y);
+	return matrices[channel].at(x, y);
 }
 
 nn::matrix& nn::tensor::channel(size_t channel)
@@ -388,6 +517,23 @@ nn::tensor& nn::tensor::operator=(const tensor& src)
 	matrices.shrink_to_fit(); // shrink to reduce data usage
 
 	return *this;
+}
+
+void nn::tensor::export_image(std::string path, int quality)
+{
+	if (c != 3)
+		throw nn::logic_exception("tensor doesn't have exactly 3 channels", __FUNCTION__, __LINE__);
+
+	std::unique_ptr<unsigned char> reordered_data(new unsigned char[3 * w * h]);
+
+	// reorder data
+	for (size_t c = 0; c < 3; c++)
+		for (size_t x = 0; x < 32; x++)
+			for (size_t y = 0; y < 32; y++)
+				reordered_data.get()[x * h * 3 + y * 3 + c] = unsigned char(matrices[c].at(x, y) * 255.0f);
+
+	if (!stbi_write_jpg(path.c_str(), 32, 32, 3, reordered_data.get(), quality))
+		throw nn::logic_exception("write jpg failed", __FUNCTION__, __LINE__);
 }
 
 void nn::tensor::fill(float num)

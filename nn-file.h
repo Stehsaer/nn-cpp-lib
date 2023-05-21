@@ -15,6 +15,7 @@ namespace nn::file
 
 		file_binary_data(unsigned char* data, size_t size) :data(data), size(size), valid(true) {}
 		file_binary_data() :data(nullptr), size(0), valid(false) {}
+		~file_binary_data();
 	};
 
 	bool file_exists(std::string path);

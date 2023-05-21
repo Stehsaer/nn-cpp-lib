@@ -29,8 +29,12 @@ namespace nn
 
 	struct cifar10_data : public nn_data<nn::tensor, nn::vector>
 	{
+	private:
+		size_t data_label;
+
 	public:
 		cifar10_data(const nn::tensor& t, size_t label);
+		size_t get_label();
 	};
 
 	class cifar10_dataset
@@ -42,8 +46,8 @@ namespace nn
 		cifar10_dataset(const cifar10_dataset& src) = delete;
 		cifar10_dataset(cifar10_dataset&& src) = delete;
 
-		void add_source(std::string file_path);
-		std::string get_label(size_t index);
+		void add_source(const std::string file_path);
+		static std::string get_label(size_t index);
 
 		void export_image(std::string path, size_t index, int quality = 90);
 	};
