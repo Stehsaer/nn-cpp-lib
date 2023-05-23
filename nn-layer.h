@@ -51,7 +51,7 @@ namespace nn
 
 			void push_input(const vector & data);
 
-			const vector& get_input();
+			vector& get_input();
 			size_t get_size();
 		};
 
@@ -66,7 +66,7 @@ namespace nn
 
 			void push_input(const matrix& data);
 
-			const matrix& get_input();
+			matrix& get_input();
 			size_t get_height();
 			size_t get_width();
 		};
@@ -82,7 +82,7 @@ namespace nn
 
 			void push_input(const tensor& data);
 
-			const tensor& get_input();
+			tensor& get_input();
 			size_t get_channel();
 			size_t get_height();
 			size_t get_width();
@@ -122,12 +122,13 @@ namespace nn
 		struct conv2_layer
 		{
 		private:
-			matrix kernal;
+			matrix* kernals;
+			matrix* feature_maps, feature_gradient;
 			size_t stride, padding;
-			size_t w, h;
+			size_t w, h, depth, kernal_size;
 
 		public:
-			conv2_layer(size_t w, size_t h, size_t stride = 1, size_t padding = 0);
+			conv2_layer(size_t w, size_t h,size_t depth, size_t kernal_size, size_t stride = 1, size_t padding = 0);
 
 			void forward(input_layer::matrix_input* prev);
 			void forward(hidden_layer::conv2_layer* prev);
@@ -139,6 +140,39 @@ namespace nn
 			void backward(hidden_layer::conv2_layer* last);
 			void backward(hidden_layer::relu_layer* last);
 			void backward(hidden_layer::maxpool_layer* last);
+		};
+
+		struct relu_layer
+		{
+		private:
+			matrix* feature_maps;
+			size_t w, h;
+
+		public:
+			relu_layer(size_t w, size_t h);
+
+			void forward(hidden_layer::conv2_layer* prev);
+			void forward(hidden_layer::conv3_layer* prev);
+
+			void backward(hidden_layer::conv2_layer* last);
+			void backward(hidden_layer::maxpool_layer* last);
+		};
+
+		struct conv3_layer
+		{
+		private:
+			tensor* kernals;
+			matrix* feature_maps, feature_gradient;
+			size_t stride, padding;
+			size_t w, h, channel, depth, kernal_size;
+
+		public:
+			conv3_layer(size_t w, size_t h, size_t channel, size_t depth, size_t kernal_size, size_t stride = 1, size_t padding = 0);
+
+			void forward(input_layer::tensor_input* prev);
+
+			void backward(hidden_layer::conv2_layer* last);
+			void backward(hidden_layer::relu_layer* last);
 		};
 	}
 

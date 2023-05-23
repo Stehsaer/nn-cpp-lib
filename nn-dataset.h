@@ -35,6 +35,8 @@ namespace nn
 	public:
 		cifar10_data(const nn::tensor& t, size_t label);
 		size_t get_label();
+
+		void export_image(std::string path, int quality = 100);
 	};
 
 	class cifar10_dataset
@@ -45,11 +47,40 @@ namespace nn
 		cifar10_dataset() {};
 		cifar10_dataset(const cifar10_dataset& src) = delete;
 		cifar10_dataset(cifar10_dataset&& src) = delete;
+		~cifar10_dataset();
 
 		void add_source(const std::string file_path);
 		static std::string get_label(size_t index);
 
-		void export_image(std::string path, size_t index, int quality = 90);
+		void export_image(std::string path, size_t index, int quality = 100);
+	};
+
+	struct mnist_data :public nn_data<nn::matrix, nn::vector>
+	{
+	private:
+		size_t data_label;
+
+	public:
+		mnist_data(const nn::matrix& m, size_t label);
+		size_t get_label();
+
+		void gen_targets(size_t max_label);
+
+		void export_image(std::string path, int quality = 100);
+	};
+
+	class mnist_dataset
+	{
+	public:
+		std::vector<mnist_data*> set;
+
+		mnist_dataset() {};
+		mnist_dataset(const mnist_dataset& src) = delete;
+		mnist_dataset(mnist_dataset&& src) = delete;
+		~mnist_dataset();
+
+		void flip_all(); // flip mnist data
+		void add_source(std::string data_path, std::string label_path);
 	};
 
 	//== Inline function for template struct: nn_data

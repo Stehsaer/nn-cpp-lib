@@ -148,9 +148,10 @@ void nn::hidden_layer::linear_layer::forward(input_layer::vector_input* prev, co
 	if (prev->get_size() != num_weights)
 		throw logic_exception("size mismatch!", __FUNCTION__, __LINE__);
 
-	value.for_each([this, &prev, func](size_t idx, float& num)
+	value.for_each([this, prev, func](size_t idx, float& num)
 		{
-			num = func->forward(nn::vector::dot(prev->get_input(), weights[idx]) + bias);
+			auto& input = prev->get_input();
+			num = func->forward(nn::vector::dot(input, weights[idx]) + bias);
 		});
 }
 

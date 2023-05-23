@@ -17,6 +17,19 @@ size_t nn::cifar10_data::get_label()
 	return data_label;
 }
 
+void nn::cifar10_data::export_image(std::string path, int quality)
+{
+	data.export_image(path, quality);
+}
+
+nn::cifar10_dataset::~cifar10_dataset()
+{
+	for (auto ptr : set)
+		delete ptr;
+
+	set.clear();
+}
+
 void nn::cifar10_dataset::add_source(const std::string file_path)
 {
 	nn::file::file_binary_data binary_data = nn::file::file_read_bytes(file_path);
@@ -68,5 +81,134 @@ void nn::cifar10_dataset::export_image(std::string path, size_t index, int quali
 		throw nn::numeric_exception("index out-of-range", __FUNCTION__, __LINE__);
 	}
 
-	set[index]->get_data().export_image(path, quality);
+	set[index]->export_image(path, quality);
+}
+
+nn::mnist_dataset::~mnist_dataset()
+{
+	for (auto ptr : set)
+		delete ptr;
+
+	set.clear();
+}
+
+void nn::mnist_dataset::flip_all()
+{
+	for (auto ptr : set)
+	{
+		math::flip_matrix_square(ptr->get_data());
+	}
+}
+
+//== mnist helper functions, local
+
+namespace mnist_helper
+{
+	constexpr int mnist_data_mgnum = 2051;
+	constexpr int mnist_label_mgnum = 2049;
+
+	constexpr size_t minimum_data_size = 16;
+	constexpr size_t minimum_label_size = 8;
+
+	// read int from mnist dataset
+	int mnist_read_int(unsigned char* ptr)
+	{
+		int i = *((int*)ptr);
+		if (nn::math::little_endian)
+			return nn::math::reverse_order_int(i);
+		else
+			return i;
+	}
+}
+
+void nn::mnist_dataset::add_source(std::string data_path, std::string label_path)
+{
+	auto data_file = file::file_read_bytes(data_path);
+	auto label_file = file::file_read_bytes(label_path);
+
+	if (!data_file.valid || !label_file.valid)
+		throw logic_exception("can't read file", __FUNCTION__, __LINE__);
+
+	// check file size, at least 8 bytes for label file, 16 bytes for image file
+
+	if (data_file.size <= mnist_helper::minimum_data_size || label_file.size <= mnist_helper::minimum_label_size)
+	{
+		throw numeric_exception("input file obviously too small", __FUNCTION__, __LINE__);
+	}
+
+	auto data_ptr = data_file.data; // start ptr
+	auto label_ptr = label_file.data;
+
+	// check magic number
+	if (mnist_helper::mnist_read_int(data_ptr) != mnist_helper::mnist_data_mgnum || mnist_helper::mnist_read_int(label_ptr) != mnist_helper::mnist_label_mgnum)
+	{
+		throw numeric_exception("input file magic number mismatch", __FUNCTION__, __LINE__);
+	}
+
+	// acquire basic parameters
+
+	int mnist_image_count = mnist_helper::mnist_read_int(data_ptr + 0x04); // number of mnist images
+	int mnist_w = mnist_helper::mnist_read_int(data_ptr + 0x08);
+	int mnist_h = mnist_helper::mnist_read_int(label_ptr + 0x12);
+
+	if (mnist_image_count != mnist_helper::mnist_read_int(label_ptr + 0x04)) // check if data and label have the same image count
+	{
+		throw numeric_exception("mismatched image count", __FUNCTION__, __LINE__);
+	}
+	if (mnist_image_count <= 0 || mnist_w <= 0 || mnist_h <= 0) // check range
+	{
+		throw numeric_exception("excepting positive integers", __FUNCTION__, __LINE__);
+	}
+
+	// check file size
+	if (data_file.size != 16 + static_cast<size_t>(mnist_w) * mnist_h * mnist_image_count 
+		|| label_file.size != 8 + static_cast<size_t>(mnist_w) * mnist_h)
+	{
+		throw numeric_exception("mismatched file size", __FUNCTION__, __LINE__);
+	}
+
+	size_t largest_label = 0;
+
+	for (size_t img_index = 0; img_index < mnist_image_count; img_index++)
+	{
+		// get label
+		size_t label = *(label_ptr + 0x08);
+
+		// find largest label
+		if (label > largest_label)
+			largest_label = label;
+
+		// get img pixels
+		nn::matrix img(mnist_w, mnist_h);
+		img.for_each([mnist_w, mnist_h, img_index, data_ptr](size_t x, size_t y, float& num)
+			{
+				num = unsigned char(*(data_ptr + 0x16 + mnist_w * mnist_h * img_index + y * mnist_w + x)) / 255.0f;
+			});
+
+		set.push_back(new nn::mnist_data(img, label));
+	}
+
+	for (auto ptr : set)
+		ptr->gen_targets(largest_label);
+}
+
+nn::mnist_data::mnist_data(const nn::matrix& m, size_t label)
+{
+	data = m;
+	data_label = label;
+}
+
+size_t nn::mnist_data::get_label()
+{
+	return data_label;
+}
+
+void nn::mnist_data::gen_targets(size_t max_label)
+{
+	target = math::one_hot(max_label, data_label);
+}
+
+void nn::mnist_data::export_image(std::string path, int quality)
+{
+	data.export_image(path, quality);
 }

@@ -4,20 +4,29 @@
 #include <math.h>
 #include <format>
 
+//== helper functions
+
 void print_vector(const nn::vector& v)
 {
 	std::cout << v.format_str() << std::endl;
 }
 
+template<typename T>
+void get_input_number(std::string prefix, T& num)
+{
+	std::cout << prefix << "=";
+	std::cin >> num;
+}
+
+std::string get_line(std::string prefix)
+{
+	std::string str;
+	std::cout << prefix << "=";
+	std::getline(std::cin, str);
+	return str;
+}
+
 int main()
 {
-	std::string path;
-	std::cin >> path;
-	nn::matrix m = nn::matrix::matrix_from_image(path);
-	nn::matrix kernal(3, 3, { 0,0.125,0,0.125,0.5,0.125,0,0.125,0 });
-	nn::matrix result = nn::math::conv_2d(m, kernal, 2, 5);
-	result.export_image("save.jpg");
-	system("./save.png");
-
 	return 0;
 }

@@ -7,6 +7,7 @@
 
 #include <vector>
 #include <functional>
+#include <bit>
 
 namespace nn
 {
@@ -133,10 +134,21 @@ namespace nn
 		void rand_matrix(matrix& m, float min, float max);
 		float rand_float(float min, float max);
 
+		//== Image operations
+
+		void flip_matrix_square(matrix& m);
+		matrix flip_matrix_any(const matrix& m);
+
 		//== Convolution
 
 		nn::matrix conv_2d(const nn::matrix& src, const nn::matrix& kernal, size_t stride = 1, size_t padding = 0);
-		nn::tensor conv_3d(const nn::tensor&& src, const nn::tensor& kernal, size_t stride = 1, size_t padding = 0);
+		nn::matrix conv_3d(const nn::tensor& src, const nn::tensor& kernal, size_t stride = 1, size_t padding = 0);
+
+		//== Bit-level operations
+
+		int reverse_order_int(int x); // reverse byte order in int
+
+		const bool little_endian = std::endian::native == std::endian::little;
 	}
 }
 

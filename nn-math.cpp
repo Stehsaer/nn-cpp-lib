@@ -63,6 +63,32 @@ float nn::math::rand_float(float min, float max)
 	return dist(mt);
 }
 
+void nn::math::flip_matrix_square(matrix& m)
+{
+	if (m.width() != m.height())
+		throw nn::numeric_exception("not a square matrix", __FUNCTION__, __LINE__);
+
+	const nn::matrix temp = m;
+	m.for_each([&temp](size_t x, size_t y, float& num)
+		{
+			num = temp.at(y, x);
+		});
+
+	delete &temp;
+}
+
+nn::matrix nn::math::flip_matrix_any(const matrix& m)
+{
+	nn::matrix out(m.height(), m.width());
+
+	out.for_each([&m](size_t x, size_t y, float& num)
+		{
+			num = m.at(y, x);
+		});
+
+	return out;
+}
+
 nn::matrix nn::math::conv_2d(const nn::matrix& src, const nn::matrix& kernal, size_t stride, size_t padding)
 {
 	// check input parameters
@@ -82,16 +108,37 @@ nn::matrix nn::math::conv_2d(const nn::matrix& src, const nn::matrix& kernal, si
 		{
 			num = 0.0f;
 			
-			for(size_t _x = 0; _x < kernal.width(); _x++)
-				for (size_t _y = 0; _y < kernal.height(); _y++)
+			for(size_t _x = 0; _x < kernal.width(); _x++) for (size_t _y = 0; _y < kernal.height(); _y++)
 				{
 					size_t src_x = _x + x * stride - padding;
 					size_t src_y = _y + y * stride - padding;
-					num += kernal.at(_x, _y) * (src_x < 0 || src_x >= src.width() || src_y < 0 || src_y >= src.height() ? 0.0f : src.at(src_x, src_y));
+
+					num += kernal.at(_x, _y) * 
+						(
+							src_x < 0 || src_x >= src.width() || src_y < 0 || src_y >= src.height() // check padding area
+							? 0.0f // padding area, fill with 0.0f
+							: src.at(src_x, src_y)
+						); // non-padding area, use real data
 				}
 		});
 
 	return out;
+}
+
+nn::matrix nn::math::conv_3d(const nn::tensor& src, const nn::tensor& kernal, size_t stride, size_t padding)
+{
+	// check input parameters
+	if (src.channels() != kernal.channels())
+		throw nn::numeric_exception("channel count mismatch", __FUNCTION__, __LINE__);
+}
+
+int nn::math::reverse_order_int(int x)
+{
+	return 
+		(0xff000000 & x) >> 24
+		| (0x00ff0000 & x) >> 8
+		| (0x0000ff00 & x) << 8
+		| (0x000000ff & x) << 24;
 }
 
 nn::vector::vector()
@@ -405,7 +452,7 @@ void nn::matrix::export_image(std::string path, int quality)
 		dat.get()[i] = unsigned char(matrix_data[i] * 255.0f);
 	}
 
-	stbi_write_jpg(path.c_str(), w, h, 1, dat.get(), quality);
+	stbi_write_jpg(path.c_str(), static_cast<int>(w), static_cast<int>(h), 1, dat.get(), quality);
 }
 
 nn::matrix nn::matrix::matrix_from_image(std::string path)
