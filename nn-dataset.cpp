@@ -182,7 +182,7 @@ void nn::mnist_dataset::add_source(std::string data_path, std::string label_path
 		nn::matrix img(mnist_w, mnist_h);
 		img.for_each([mnist_w, mnist_h, img_index, data_ptr](size_t x, size_t y, float& num)
 			{
-				num = unsigned char(*(data_ptr + 0x16 + mnist_w * mnist_h * img_index + y * mnist_w + x)) / 255.0f;
+				num = *(data_ptr + 0x16 + static_cast<size_t>(mnist_w) * mnist_h * img_index + y * mnist_w + x) / 255.0f;// C1001??
 			});
 
 		set.push_back(new nn::mnist_data(img, label));
