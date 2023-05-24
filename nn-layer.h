@@ -192,8 +192,8 @@ namespace nn
 			float get_loss();
 			void push_target(const vector & target);
 
-			virtual void forward_and_grad(hidden_layer::linear_layer& layer) = 0;
-			virtual void forward(hidden_layer::linear_layer& layer) = 0;
+			virtual void forward_and_grad(hidden_layer::linear_layer* layer) = 0;
+			virtual void forward(hidden_layer::linear_layer* layer) = 0;
 		};
 
 		struct mse_optimizer :vector_optimizer
@@ -201,8 +201,8 @@ namespace nn
 		public:
 			mse_optimizer(size_t size);
 
-			void forward_and_grad(hidden_layer::linear_layer& layer);
-			void forward(hidden_layer::linear_layer& layer);
+			void forward_and_grad(hidden_layer::linear_layer* layer);
+			void forward(hidden_layer::linear_layer* layer);
 		};
 
 		struct softmax_optimizer :vector_optimizer
@@ -210,10 +210,29 @@ namespace nn
 		public:
 			softmax_optimizer(size_t size);
 
-			void forward_and_grad(hidden_layer::linear_layer& layer);
-			void forward(hidden_layer::linear_layer& layer);
+			void forward_and_grad(hidden_layer::linear_layer* layer);
+			void forward(hidden_layer::linear_layer* layer);
 		};
 	}
+
+	template<typename input_T, typename output_T>
+	class base_network
+	{
+	public:
+		float learning_rate = 0.01f;
+
+		virtual void feed_data(const input_T& input) = 0;
+		virtual output_T get_output() = 0;
+
+		virtual void forward_and_grad(const output_T& target) = 0;
+		virtual void backward() = 0;
+		virtual void forward() = 0;
+		virtual void update_weights() = 0;
+
+		virtual float get_loss() = 0;
+
+		virtual void init_weights(float min, float max) = 0;
+	};
 }
 
 #endif

@@ -34,13 +34,13 @@ nn::optimizer::mse_optimizer::mse_optimizer(size_t size)
 	target = vector(size);
 }
 
-void nn::optimizer::mse_optimizer::forward_and_grad(hidden_layer::linear_layer& layer)
+void nn::optimizer::mse_optimizer::forward_and_grad(hidden_layer::linear_layer* layer)
 {
 	// check element count
-	if (layer.get_size() != optimizer_size)
+	if (layer->get_size() != optimizer_size)
 		throw nn::logic_exception("vector size mismatch!", __FUNCTION__, __LINE__);
 
-	auto& prev_input = layer.get_value();
+	auto& prev_input = layer->get_value();
 	loss = 0.0f;
 
 	// forward
@@ -54,9 +54,9 @@ void nn::optimizer::mse_optimizer::forward_and_grad(hidden_layer::linear_layer& 
 		});
 }
 
-void nn::optimizer::mse_optimizer::forward(hidden_layer::linear_layer& layer)
+void nn::optimizer::mse_optimizer::forward(hidden_layer::linear_layer* layer)
 {
-	output = layer.get_value();
+	output = layer->get_value();
 }
 
 nn::vector& nn::optimizer::vector_optimizer::get_gradient()
@@ -95,10 +95,10 @@ nn::optimizer::softmax_optimizer::softmax_optimizer(size_t size)
 	target = vector(size);
 }
 
-void nn::optimizer::softmax_optimizer::forward_and_grad(hidden_layer::linear_layer& layer)
+void nn::optimizer::softmax_optimizer::forward_and_grad(hidden_layer::linear_layer* layer)
 {
 	// check element count
-	if (layer.get_size() != optimizer_size)
+	if (layer->get_size() != optimizer_size)
 		throw nn::logic_exception("vector size mismatch!", __FUNCTION__, __LINE__);
 
 	forward(layer);
@@ -111,12 +111,12 @@ void nn::optimizer::softmax_optimizer::forward_and_grad(hidden_layer::linear_lay
 		});
 }
 
-void nn::optimizer::softmax_optimizer::forward(hidden_layer::linear_layer& layer)
+void nn::optimizer::softmax_optimizer::forward(hidden_layer::linear_layer* layer)
 {
-	if (layer.get_size() != optimizer_size)
+	if (layer->get_size() != optimizer_size)
 		throw nn::logic_exception("vector size mismatch!", __FUNCTION__, __LINE__);
 
-	auto& prev_input = layer.get_value();
+	auto& prev_input = layer->get_value();
 	output = prev_input;
 	loss = 0.0f;
 

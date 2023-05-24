@@ -147,11 +147,11 @@ void nn::mnist_dataset::add_source(std::string data_path, std::string label_path
 
 	// acquire basic parameters
 
-	int mnist_image_count = mnist_helper::mnist_read_int(data_ptr + 0x04); // number of mnist images
-	int mnist_w = mnist_helper::mnist_read_int(data_ptr + 0x08);
-	int mnist_h = mnist_helper::mnist_read_int(label_ptr + 0x12);
+	int mnist_image_count = mnist_helper::mnist_read_int(data_ptr + 4); // number of mnist images
+	int mnist_w = mnist_helper::mnist_read_int(data_ptr + 8);
+	int mnist_h = mnist_helper::mnist_read_int(data_ptr + 12);
 
-	if (mnist_image_count != mnist_helper::mnist_read_int(label_ptr + 0x04)) // check if data and label have the same image count
+	if (mnist_image_count != mnist_helper::mnist_read_int(label_ptr + 4)) // check if data and label have the same image count
 	{
 		throw numeric_exception("mismatched image count", __FUNCTION__, __LINE__);
 	}
@@ -162,7 +162,7 @@ void nn::mnist_dataset::add_source(std::string data_path, std::string label_path
 
 	// check file size
 	if (data_file.size != 16 + static_cast<size_t>(mnist_w) * mnist_h * mnist_image_count 
-		|| label_file.size != 8 + static_cast<size_t>(mnist_w) * mnist_h)
+		|| label_file.size != 8 + static_cast<unsigned long long>(mnist_image_count))
 	{
 		throw numeric_exception("mismatched file size", __FUNCTION__, __LINE__);
 	}
@@ -172,7 +172,7 @@ void nn::mnist_dataset::add_source(std::string data_path, std::string label_path
 	for (size_t img_index = 0; img_index < mnist_image_count; img_index++)
 	{
 		// get label
-		size_t label = *(label_ptr + 0x08);
+		size_t label = *(label_ptr + 8 + img_index);
 
 		// find largest label
 		if (label > largest_label)
@@ -182,7 +182,7 @@ void nn::mnist_dataset::add_source(std::string data_path, std::string label_path
 		nn::matrix img(mnist_w, mnist_h);
 		img.for_each([mnist_w, mnist_h, img_index, data_ptr](size_t x, size_t y, float& num)
 			{
-				num = *(data_ptr + 0x16 + static_cast<size_t>(mnist_w) * mnist_h * img_index + y * mnist_w + x) / 255.0f;// C1001??
+				num = *(data_ptr + 16 + static_cast<size_t>(mnist_w) * mnist_h * img_index + y * mnist_w + x) / 255.0f;// C1001??
 			});
 
 		set.push_back(new nn::mnist_data(img, label));

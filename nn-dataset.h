@@ -21,7 +21,6 @@ namespace nn
 		nn_data(const DAT& dat, const TGT& tgt);
 		nn_data(const nn_data& src) = delete; // NOTE: No copy or move of nn_data
 		nn_data(nn_data&& src) = delete;
-		~nn_data();
 
 		DAT& get_data();
 		TGT& get_target();
@@ -97,13 +96,6 @@ namespace nn
 	{
 		data = dat;
 		target = tgt;
-	}
-
-	template<typename DAT, typename TGT>
-	inline nn_data<DAT, TGT>::~nn_data()
-	{
-		delete &data;
-		delete &target;
 	}
 
 	template<typename DAT, typename TGT>

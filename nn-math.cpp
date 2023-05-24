@@ -22,10 +22,10 @@ float nn::math::dot(float* left, float* right, size_t num)
 
 nn::vector nn::math::one_hot(size_t max_one_hot, size_t label)
 {
-	if (label >= max_one_hot || max_one_hot == 0)
+	if (label >= max_one_hot + 1 || max_one_hot == 0)
 		throw nn::numeric_exception("one-hot error", __FUNCTION__, __LINE__);
 
-	vector v(max_one_hot);
+	vector v(max_one_hot + 1);
 	v.fill(0.0f);
 	v[label] = 1.0f;
 	return v;
@@ -73,8 +73,6 @@ void nn::math::flip_matrix_square(matrix& m)
 		{
 			num = temp.at(y, x);
 		});
-
-	delete &temp;
 }
 
 nn::matrix nn::math::flip_matrix_any(const matrix& m)
@@ -103,26 +101,44 @@ nn::matrix nn::math::conv_2d(const nn::matrix& src, const nn::matrix& kernal, si
 
 	nn::matrix out(output_w, output_h);
 
-	// do conv
-	out.for_each([&src, &kernal, stride, padding](size_t x, size_t y, float& num)
-		{
-			num = 0.0f;
-			
-			for(size_t _x = 0; _x < kernal.width(); _x++) for (size_t _y = 0; _y < kernal.height(); _y++)
-				{
-					size_t src_x = _x + x * stride - padding;
-					size_t src_y = _y + y * stride - padding;
-
-					num += kernal.at(_x, _y) * 
-						(
-							src_x < 0 || src_x >= src.width() || src_y < 0 || src_y >= src.height() // check padding area
-							? 0.0f // padding area, fill with 0.0f
-							: src.at(src_x, src_y)
-						); // non-padding area, use real data
-				}
-		});
+	conv_2d(out, src, kernal, stride, padding);
 
 	return out;
+}
+
+void nn::math::conv_2d(nn::matrix& dst, const nn::matrix& src, const nn::matrix& kernal, size_t stride, size_t padding)
+{
+	// check input parameters
+	if (kernal.width() > src.width() || kernal.height() > src.height())
+		throw nn::numeric_exception("(conv)kernal bigger than source", __FUNCTION__, __LINE__);
+	if (stride == 0)
+		throw nn::numeric_exception("(conv)stride should be larger than 0", __FUNCTION__, __LINE__);
+
+	// calculate height and width
+	size_t output_w = (src.width() - kernal.width() + padding * 2) / stride;
+	size_t output_h = (src.height() - kernal.height() + padding * 2) / stride;
+
+	if (dst.width() != output_w || dst.height() != output_h)
+		throw nn::numeric_exception("mismatch DST size", __FUNCTION__, __LINE__);
+
+	// do conv
+	dst.for_each([&src, &kernal, stride, padding](size_t x, size_t y, float& num)
+		{
+			num = 0.0f;
+
+			for (size_t _x = 0; _x < kernal.width(); _x++) for (size_t _y = 0; _y < kernal.height(); _y++)
+			{
+				size_t src_x = _x + x * stride - padding;
+				size_t src_y = _y + y * stride - padding;
+
+				num += kernal.at(_x, _y) *
+					(
+						src_x < 0 || src_x >= src.width() || src_y < 0 || src_y >= src.height() // check padding area
+						? 0.0f // padding area, fill with 0.0f
+						: src.at(src_x, src_y)
+						); // non-padding area, use real data
+			}
+		});
 }
 
 nn::matrix nn::math::conv_3d(const nn::tensor& src, const nn::tensor& kernal, size_t stride, size_t padding)
@@ -241,6 +257,17 @@ nn::vector& nn::vector::operator=(const nn::vector& src)
 	}
 
 	memcpy(vector_data, src.vector_data, sizeof(float) * vector_size);
+
+	return *this;
+}
+
+nn::vector& nn::vector::operator =(nn::vector&& src) noexcept
+{
+	delete[] vector_data;
+	vector_size = src.vector_size;
+	vector_data = src.vector_data;
+
+	src.vector_data = nullptr;
 
 	return *this;
 }
@@ -424,6 +451,19 @@ nn::matrix& nn::matrix::operator=(const matrix& src)
 	return *this;
 }
 
+nn::matrix& nn::matrix::operator=(matrix&& src) noexcept
+{
+	delete[] matrix_data;
+	
+	w = src.w;
+	h = src.h;
+	
+	matrix_data = src.matrix_data;
+	src.matrix_data = nullptr;
+
+	return *this;
+}
+
 void nn::matrix::fill(float num)
 {
 	for (size_t i = 0; i < w * h; i++)
@@ -464,7 +504,7 @@ nn::matrix nn::matrix::matrix_from_image(std::string path)
 
 	matrix m(x, y);
 
-	for (size_t i = 0; i < x * y; i++)
+	for (size_t i = 0; i < static_cast<size_t>(x) * y; i++)
 	{
 		m.data()[i] = data[i] / 255.0f;
 	}
@@ -562,6 +602,17 @@ nn::tensor& nn::tensor::operator=(const tensor& src)
 	}
 
 	matrices.shrink_to_fit(); // shrink to reduce data usage
+
+	return *this;
+}
+
+nn::tensor& nn::tensor::operator=(tensor&& src) noexcept
+{
+	w = src.w;
+	h = src.h;
+	c = src.c;
+
+	matrices.assign(src.matrices.begin(), src.matrices.end());
 
 	return *this;
 }

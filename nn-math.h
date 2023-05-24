@@ -47,6 +47,7 @@ namespace nn
 		void operator +=(vector& v); // add per element
 
 		vector& operator =(const vector& src);
+		vector& operator =(vector&& src) noexcept;
 		vector& operator =(std::initializer_list<float> list);
 
 		std::string format_str() const; // get formatted string as format: "vector(0.0,0.0...)"
@@ -82,6 +83,7 @@ namespace nn
 		bool valid();
 
 		matrix& operator =(const matrix& src);
+		matrix& operator =(matrix&& src) noexcept;
 
 		void fill(float num);
 
@@ -114,6 +116,7 @@ namespace nn
 		matrix& channel(size_t channel); // returns the matrix at given channel
 
 		tensor& operator =(const tensor& src);
+		tensor& operator =(tensor&& src) noexcept;
 
 		void export_image(std::string path, int quality = 90);
 		static tensor tensor_from_image(std::string path);
@@ -142,6 +145,7 @@ namespace nn
 		//== Convolution
 
 		nn::matrix conv_2d(const nn::matrix& src, const nn::matrix& kernal, size_t stride = 1, size_t padding = 0);
+		void conv_2d(nn::matrix& dst, const nn::matrix& src, const nn::matrix& kernal, size_t stride = 1, size_t padding = 0);
 		nn::matrix conv_3d(const nn::tensor& src, const nn::tensor& kernal, size_t stride = 1, size_t padding = 0);
 
 		//== Bit-level operations
