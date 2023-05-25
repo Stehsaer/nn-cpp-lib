@@ -68,6 +68,9 @@
     <ClInclude Include="stb-img\stb_image_resize.h">
       <Filter>Header\Helper</Filter>
     </ClInclude>
+    <ClInclude Include="nn-example.h">
+      <Filter>Header</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />

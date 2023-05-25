@@ -55,6 +55,18 @@ void nn::math::rand_matrix(matrix& m, float min, float max)
 	}
 }
 
+void nn::math::rand_tensor(tensor& t, float min, float max)
+{
+	std::random_device rd;
+	std::mt19937 mt(rd());
+	std::uniform_real_distribution dist(min, max);
+
+	t.for_each([&dist, &mt](size_t, size_t, size_t, float& num)
+		{
+			num = dist(mt);
+		});
+}
+
 float nn::math::rand_float(float min, float max)
 {
 	std::random_device rd;
@@ -146,6 +158,51 @@ nn::matrix nn::math::conv_3d(const nn::tensor& src, const nn::tensor& kernal, si
 	// check input parameters
 	if (src.channels() != kernal.channels())
 		throw nn::numeric_exception("channel count mismatch", __FUNCTION__, __LINE__);
+	if (stride == 0)
+		throw nn::numeric_exception("(conv)stride should be larger than 0", __FUNCTION__, __LINE__);
+
+	size_t output_w = (src.width() - kernal.width() + padding * 2) / stride;
+	size_t output_h = (src.height() - kernal.height() + padding * 2) / stride;
+
+	matrix out(output_w, output_h);
+	
+	conv_3d(out, src, kernal, stride, padding);
+
+	return out;
+}
+
+void nn::math::conv_3d(nn::matrix& dst, const nn::tensor& src, const nn::tensor& kernal, size_t stride, size_t padding)
+{
+	// check input parameters
+	if (src.channels() != kernal.channels())
+		throw nn::numeric_exception("channel count mismatch", __FUNCTION__, __LINE__);
+	if (stride == 0)
+		throw nn::numeric_exception("(conv)stride should be larger than 0", __FUNCTION__, __LINE__);
+
+	size_t output_w = (src.width() - kernal.width() + padding * 2) / stride;
+	size_t output_h = (src.height() - kernal.height() + padding * 2) / stride;
+
+	dst.fill(0.0f);
+
+	// 3d conv
+	for (size_t channel = 0; channel < src.channels(); channel++)
+	{
+		dst.for_each([&src, &kernal, stride, padding, channel](size_t x, size_t y, float& num)
+			{
+				for (size_t _x = 0; _x < kernal.width(); _x++) for (size_t _y = 0; _y < kernal.height(); _y++)
+				{
+					size_t src_x = _x + x * stride - padding;
+					size_t src_y = _y + y * stride - padding;
+
+					num += kernal.at(_x, _y, channel) *
+						(
+							src_x < 0 || src_x >= src.width() || src_y < 0 || src_y >= src.height() // check padding area
+							? 0.0f // padding area, fill with 0.0f
+							: src.at(src_x, src_y, channel)
+							); // non-padding area, use real data
+				}
+			});
+	}
 }
 
 int nn::math::reverse_order_int(int x)
@@ -634,8 +691,31 @@ void nn::tensor::export_image(std::string path, int quality)
 		throw nn::logic_exception("write jpg failed", __FUNCTION__, __LINE__);
 }
 
+nn::tensor nn::tensor::tensor_from_image(std::string path)
+{
+	int w, h, channel;
+	unsigned char* img = stbi_load(path.c_str(), &w, &h, &channel, 3);
+
+	nn::tensor out(w, h, 3);
+
+	out.for_each([img, &out, w, h](size_t x, size_t y, size_t channel, float& num)
+		{
+			num = img[x * h * 3 + y * 3 + channel] / 255.0f;
+		});
+}
+
 void nn::tensor::fill(float num)
 {
 	for (auto& matrix : matrices)
 		matrix.fill(num);
+}
+
+void nn::tensor::for_each(std::function<void(size_t, size_t, size_t, float&)> func)
+{
+	for (size_t channel = 0; channel < c; channel++)
+	{
+		for (size_t x = 0; x < w; x++)
+			for (size_t y = 0; y < h; y++)
+				func(x, y, channel, at(x, y, channel));
+	}
 }

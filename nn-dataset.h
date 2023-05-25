@@ -1,3 +1,7 @@
+// FILENAME: nn-dataset.h
+// Provide base class and some specific classes for storing and loading various datasets
+// Datasets supported: MNIST, EMNIST, Cifar-10
+
 #ifndef NN_DATASET_H
 #define NN_DATASET_H
 
@@ -8,7 +12,7 @@
 
 namespace nn
 {
-	// base class for all datasets
+	// base class for storing dataset image
 	template<typename DAT, typename TGT>
 	struct nn_data
 	{

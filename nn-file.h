@@ -1,3 +1,7 @@
+// FILENAME: nn-file.h
+// Provide handful helper functions for reading and writing text and binary files
+// Reading a file returns a struct file_binary_data
+
 #ifndef NN_FILE_H
 #define NN_FILE_H
 

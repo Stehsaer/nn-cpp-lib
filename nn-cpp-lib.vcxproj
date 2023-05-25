@@ -152,6 +152,7 @@
   <ItemGroup>
     <ClInclude Include="nn-cpp-lib.h" />
     <ClInclude Include="nn-dataset.h" />
+    <ClInclude Include="nn-example.h" />
     <ClInclude Include="nn-exception.h" />
     <ClInclude Include="nn-file.h" />
     <ClInclude Include="nn-layer.h" />

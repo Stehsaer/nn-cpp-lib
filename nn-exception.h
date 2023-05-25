@@ -1,4 +1,5 @@
-// This header defines exceptions in nn-cpp-lib
+// FILENAME: nn-exception.h
+// Defines various exception types for nn-cpp-lib
 
 #ifndef NN_EXCEPTION_H
 #define NN_EXCEPTION_H

@@ -1,3 +1,7 @@
+// FILENAME: nn-activate-function.h
+// Defines common activate function for neural-network
+// Include: sigmoid, relu, leaky_relu
+
 #ifndef NN_ACTIVATE_FUNCTION_H
 #define NN_ACTIVATE_FUNCTION_H
 

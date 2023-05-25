@@ -1,5 +1,6 @@
-// This header defines different layers of neuron network
-// All structures only holds data, without any implementation (forward transmit etc.)
+// FILENAME: nn-layer-h
+// Defines different layers and optimizers for a common neural-network
+// Defines a base class, useful for creating a network
 
 #ifndef NN_LAYER_H
 #define NN_LAYER_H
@@ -222,7 +223,7 @@ namespace nn
 		float learning_rate = 0.01f;
 
 		virtual void feed_data(const input_T& input) = 0;
-		virtual output_T get_output() = 0;
+		virtual output_T& get_output() = 0;
 
 		virtual void forward_and_grad(const output_T& target) = 0;
 		virtual void backward() = 0;

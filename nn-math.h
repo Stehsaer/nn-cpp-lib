@@ -1,4 +1,6 @@
-// This header defines common mathmatic operation functions
+// FILENAME: nn-math.h
+// Defines vector, matrix and tensor
+// Provide helper functions for math operations, eg. random, bit-reverse, one-hot
 
 #ifndef NN_MATH_H
 #define NN_MATH_H
@@ -57,6 +59,8 @@ namespace nn
 		float sum() const;
 		
 		void for_each(std::function<void(size_t, float&)> func); // execute operation foreach element
+
+		operator bool(); // if valid, returns true
 	};
 
 	// 2d matrix, float format
@@ -92,6 +96,8 @@ namespace nn
 		static matrix matrix_from_image(std::string path);
 
 		void for_each(std::function<void(size_t, size_t, float&)> func); // execute operation foreach element (x,y)
+
+		operator bool(); // if valid, returns true
 	};
 
 	// 3d tensor structure, consisting of numerous matrices
@@ -122,6 +128,10 @@ namespace nn
 		static tensor tensor_from_image(std::string path);
 
 		void fill(float num);
+
+		void for_each(std::function<void(size_t, size_t, size_t, float&)> func);
+
+		operator bool(); // if valid, returns true
 	};
 
 	namespace math
@@ -135,6 +145,7 @@ namespace nn
 		vector one_hot(size_t max_one_hot, size_t label); // one-hot helper for vector
 		void rand_vector(vector& v, float min, float max);
 		void rand_matrix(matrix& m, float min, float max);
+		void rand_tensor(tensor& t, float min, float max);
 		float rand_float(float min, float max);
 
 		//== Image operations
@@ -146,7 +157,9 @@ namespace nn
 
 		nn::matrix conv_2d(const nn::matrix& src, const nn::matrix& kernal, size_t stride = 1, size_t padding = 0);
 		void conv_2d(nn::matrix& dst, const nn::matrix& src, const nn::matrix& kernal, size_t stride = 1, size_t padding = 0);
+
 		nn::matrix conv_3d(const nn::tensor& src, const nn::tensor& kernal, size_t stride = 1, size_t padding = 0);
+		void conv_3d(nn::matrix& dst, const nn::tensor& src, const nn::tensor& kernal, size_t stride = 1, size_t padding = 0);
 
 		//== Bit-level operations
 
