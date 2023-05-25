@@ -123,40 +123,48 @@ namespace nn
 		struct conv2_layer
 		{
 		private:
-			matrix* kernals;
-			matrix* feature_maps, feature_gradient;
+			matrix* kernals; // convolution kernals
+			matrix* maps, * gradients; // maps: convolution result; gradients: as the word says
 			size_t stride, padding;
-			size_t w, h, depth, kernal_size;
+			float* bias;
 
 		public:
+			const size_t w, h, depth, kernal_size; // in conv-related layers we choose to expose these parameters as const
+
 			conv2_layer(size_t w, size_t h,size_t depth, size_t kernal_size, size_t stride = 1, size_t padding = 0);
+			~conv2_layer(); // manual release memory
 
 			void forward(input_layer::matrix_input* prev);
 			void forward(hidden_layer::conv2_layer* prev);
 			void forward(hidden_layer::relu_layer* prev);
-			void forward(hidden_layer::maxpool_layer* prev);
-			void forward(hidden_layer::conv3_layer* prev);
 
-			void backward(hidden_layer::conv2_linear_adapter_layer last);
 			void backward(hidden_layer::conv2_layer* last);
 			void backward(hidden_layer::relu_layer* last);
-			void backward(hidden_layer::maxpool_layer* last);
+
+			matrix& get_kernal(size_t idx);
+			matrix& get_map(size_t idx);
+			matrix& get_gradient(size_t idx);
+
+			void rand_weights(float min, float max);
 		};
 
 		struct relu_layer
 		{
 		private:
-			matrix* feature_maps;
-			size_t w, h;
-
+			matrix* maps, * gradients;
+			
 		public:
-			relu_layer(size_t w, size_t h);
+			const size_t w, h, depth;
+
+			relu_layer(size_t w, size_t h, size_t depth);
+			~relu_layer();
 
 			void forward(hidden_layer::conv2_layer* prev);
-			void forward(hidden_layer::conv3_layer* prev);
 
-			void backward(hidden_layer::conv2_layer* last);
-			void backward(hidden_layer::maxpool_layer* last);
+			void backward(hidden_layer::conv2_layer* prev);
+
+			matrix& get_map(size_t idx);
+			matrix& get_gradient(size_t idx);
 		};
 
 		struct conv3_layer
@@ -169,11 +177,6 @@ namespace nn
 
 		public:
 			conv3_layer(size_t w, size_t h, size_t channel, size_t depth, size_t kernal_size, size_t stride = 1, size_t padding = 0);
-
-			void forward(input_layer::tensor_input* prev);
-
-			void backward(hidden_layer::conv2_layer* last);
-			void backward(hidden_layer::relu_layer* last);
 		};
 	}
 

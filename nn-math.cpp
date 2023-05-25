@@ -20,6 +20,22 @@ float nn::math::dot(float* left, float* right, size_t num)
 	return result;
 }
 
+void nn::math::add(float* array, float addition, size_t num)
+{
+	for (size_t i = 0; i < num; i++)
+	{
+		array[i] += addition;
+	}
+}
+
+void nn::math::add(float* left, float* right, size_t num)
+{
+	for (size_t i = 0; i < num; i++)
+	{
+		left[i] += right[i];
+	}
+}
+
 nn::vector nn::math::one_hot(size_t max_one_hot, size_t label)
 {
 	if (label >= max_one_hot + 1 || max_one_hot == 0)
@@ -99,6 +115,16 @@ nn::matrix nn::math::flip_matrix_any(const matrix& m)
 	return out;
 }
 
+nn::matrix nn::math::rotate_matrix_180(const matrix& m)
+{
+	matrix out(m.width(), m.height());
+	out.for_each([&m](size_t x, size_t y, float& num)
+		{
+			num = m.at(m.width() - 1 - x, m.height() - 1 - y);
+		});
+	return out;
+}
+
 nn::matrix nn::math::conv_2d(const nn::matrix& src, const nn::matrix& kernal, size_t stride, size_t padding)
 {
 	// check input parameters
@@ -108,8 +134,8 @@ nn::matrix nn::math::conv_2d(const nn::matrix& src, const nn::matrix& kernal, si
 		throw nn::numeric_exception("(conv)stride should be larger than 0", __FUNCTION__, __LINE__);
 
 	// calculate height and width
-	size_t output_w = (src.width() - kernal.width() + padding * 2) / stride;
-	size_t output_h = (src.height() - kernal.height() + padding * 2) / stride;
+	size_t output_w = (src.width() - kernal.width() + padding * 2 + 1) / stride;
+	size_t output_h = (src.height() - kernal.height() + padding * 2 + 1) / stride;
 
 	nn::matrix out(output_w, output_h);
 
@@ -127,8 +153,8 @@ void nn::math::conv_2d(nn::matrix& dst, const nn::matrix& src, const nn::matrix&
 		throw nn::numeric_exception("(conv)stride should be larger than 0", __FUNCTION__, __LINE__);
 
 	// calculate height and width
-	size_t output_w = (src.width() - kernal.width() + padding * 2) / stride;
-	size_t output_h = (src.height() - kernal.height() + padding * 2) / stride;
+	size_t output_w = (src.width() - kernal.width() + padding * 2 + 1) / stride;
+	size_t output_h = (src.height() - kernal.height() + padding * 2 + 1) / stride;
 
 	if (dst.width() != output_w || dst.height() != output_h)
 		throw nn::numeric_exception("mismatch DST size", __FUNCTION__, __LINE__);
@@ -161,8 +187,8 @@ nn::matrix nn::math::conv_3d(const nn::tensor& src, const nn::tensor& kernal, si
 	if (stride == 0)
 		throw nn::numeric_exception("(conv)stride should be larger than 0", __FUNCTION__, __LINE__);
 
-	size_t output_w = (src.width() - kernal.width() + padding * 2) / stride;
-	size_t output_h = (src.height() - kernal.height() + padding * 2) / stride;
+	size_t output_w = (src.width() - kernal.width() + padding * 2 + 1) / stride;
+	size_t output_h = (src.height() - kernal.height() + padding * 2 + 1) / stride;
 
 	matrix out(output_w, output_h);
 	
@@ -179,8 +205,8 @@ void nn::math::conv_3d(nn::matrix& dst, const nn::tensor& src, const nn::tensor&
 	if (stride == 0)
 		throw nn::numeric_exception("(conv)stride should be larger than 0", __FUNCTION__, __LINE__);
 
-	size_t output_w = (src.width() - kernal.width() + padding * 2) / stride;
-	size_t output_h = (src.height() - kernal.height() + padding * 2) / stride;
+	size_t output_w = (src.width() - kernal.width() + padding * 2 + 1) / stride;
+	size_t output_h = (src.height() - kernal.height() + padding * 2 + 1) / stride;
 
 	dst.fill(0.0f);
 
@@ -300,8 +326,7 @@ void nn::vector::operator+=(vector& v)
 	if (v.vector_size != vector_size)
 		throw nn::numeric_exception("vector dimension mismatch", __FUNCTION__, __LINE__);
 
-	for (size_t i = 0; i < vector_size; i++)
-		vector_data[i] += v[i];
+	math::add(vector_data, v.vector_data, vector_size);
 }
 
 nn::vector& nn::vector::operator=(const nn::vector& src)
@@ -346,7 +371,7 @@ nn::vector& nn::vector::operator =(std::initializer_list<float> list)
 	return *this;
 }
 
-std::string nn::vector::format_str() const
+nn::vector::operator std::string() const
 {
 	std::string formatted = "vector(";
 
@@ -406,6 +431,11 @@ void nn::vector::for_each(std::function<void(size_t, float&)> func)
 {
 	for (size_t i = 0; i < vector_size; i++)
 		func(i, vector_data[i]);
+}
+
+nn::vector::operator bool() const
+{
+	return vector_data != nullptr && vector_size > 0;
 }
 
 nn::matrix::matrix()
@@ -486,11 +516,6 @@ float* nn::matrix::data()
 	return matrix_data;
 }
 
-bool nn::matrix::valid()
-{
-	return matrix_data != nullptr && w > 0 && h > 0;
-}
-
 nn::matrix& nn::matrix::operator=(const matrix& src)
 {
 	if (w != src.w || h != src.h)
@@ -519,6 +544,33 @@ nn::matrix& nn::matrix::operator=(matrix&& src) noexcept
 	src.matrix_data = nullptr;
 
 	return *this;
+}
+
+void nn::matrix::operator+=(const matrix& src)
+{
+	if (w != src.w || h != src.h)
+		throw numeric_exception("matrix size mismatch", __FUNCTION__, __LINE__);
+
+	math::add(matrix_data, src.matrix_data, w * h);
+}
+
+nn::matrix::operator std::string()
+{
+	std::string out = "matrix(\n";
+
+	for (size_t y = 0; y < h; y++)
+	{
+		out += "[";
+		for (size_t x = 0; x < w; x++)
+		{
+			out += std::to_string(at(x, y)) + (x == w - 1 ? "," : " ");
+		}
+		out += "]\n";
+	}
+
+	out += ")";
+
+	return out;
 }
 
 void nn::matrix::fill(float num)
@@ -576,6 +628,11 @@ void nn::matrix::for_each(std::function<void(size_t, size_t, float&)> func)
 	for (size_t x = 0; x < w; x++)
 		for (size_t y = 0; y < h; y++)
 			func(x, y, matrix_data[y * w + x]);
+}
+
+nn::matrix::operator bool() const
+{
+	return w != 0 && h != 0 && matrix_data != nullptr;
 }
 
 nn::tensor::tensor()
@@ -702,6 +759,8 @@ nn::tensor nn::tensor::tensor_from_image(std::string path)
 		{
 			num = img[x * h * 3 + y * 3 + channel] / 255.0f;
 		});
+
+	return out;
 }
 
 void nn::tensor::fill(float num)
@@ -718,4 +777,9 @@ void nn::tensor::for_each(std::function<void(size_t, size_t, size_t, float&)> fu
 			for (size_t y = 0; y < h; y++)
 				func(x, y, channel, at(x, y, channel));
 	}
+}
+
+nn::tensor::operator bool() const
+{
+	return w != 0 && h != 0 && c != 0 && !matrices.empty();
 }

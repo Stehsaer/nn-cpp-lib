@@ -11,7 +11,7 @@
 
 void print_vector(const nn::vector& v)
 {
-	std::cout << v.format_str() << std::endl;
+	std::cout << v << std::endl;
 }
 
 template<typename T>
@@ -29,7 +29,7 @@ std::string get_line(std::string prefix)
 	return str;
 }
 
-int main()
+void mnist_train_test()
 {
 	nn::mnist_dataset set;
 	set.add_source(get_line("data-path"), get_line("label-path"));
@@ -45,7 +45,7 @@ int main()
 		network.forward_and_grad(item->get_target());
 		network.backward();
 		network.update_weights();
-		
+
 		count++;
 	}
 
@@ -65,6 +65,25 @@ int main()
 	}
 
 	printf("verify: correct=%d, wrong=%d", correct, wrong);
+}
+
+int main()
+{
+	nn::mnist_dataset set;
+	set.add_source(get_line("data-path"), get_line("label-path"));
+
+	nn::input_layer::matrix_input input(28, 28);
+	nn::hidden_layer::conv2_layer conv1(28, 28, 1, 3, 1, 1);
+	nn::hidden_layer::relu_layer relu(28, 28, 1);
+
+	input.push_input(set.set[1]->get_data());
+
+	conv1.rand_weights(0.1, 0.9);
+
+	conv1.forward(&input);
+	relu.forward(&conv1);
+	
+	relu.get_map(0).export_image("conv.jpg", 100);
 	
 	return 0;
 }

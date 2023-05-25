@@ -244,3 +244,143 @@ void nn::hidden_layer::linear_layer::rand_weights(float min, float max)
 
 	bias = nn::math::rand_float(min, max);
 }
+
+nn::hidden_layer::conv2_layer::conv2_layer(size_t w, size_t h, size_t depth, size_t kernal_size, size_t stride, size_t padding): 
+	w(w), h(h), depth(depth), kernal_size(kernal_size), stride(stride), padding(padding)
+{
+	kernals = new nn::matrix[depth](nn::matrix(kernal_size, kernal_size));
+	maps = new nn::matrix[depth](nn::matrix(w, h));
+	gradients = new nn::matrix[depth](nn::matrix(w, h));
+
+	bias = new float[depth];
+}
+
+nn::hidden_layer::conv2_layer::~conv2_layer()
+{
+	delete[] maps;
+	delete[] gradients;
+	delete[] bias;
+	delete[] kernals;
+}
+
+void nn::hidden_layer::conv2_layer::forward(input_layer::matrix_input* prev)
+{
+	// do conv for each kernal
+	for (size_t i = 0; i < depth; i++)
+	{
+		math::conv_2d(maps[i], prev->get_input(), kernals[i], stride, padding);
+	}
+}
+
+void nn::hidden_layer::conv2_layer::forward(hidden_layer::conv2_layer* prev)
+{
+	if (depth != prev->depth)
+		throw numeric_exception("conv layer depth mismatch", __FUNCTION__, __LINE__);
+
+	// do conv for each kernal
+	for (size_t i = 0; i < depth; i++)
+	{
+		math::conv_2d(maps[i], prev->get_map(i), kernals[i], stride, padding);
+	}
+}
+
+void nn::hidden_layer::conv2_layer::forward(hidden_layer::relu_layer* prev)
+{
+	if (depth != prev->depth)
+		throw numeric_exception("relu layer and conv layer depth mismatch", __FUNCTION__, __LINE__);
+
+	// do conv for each kernal
+	for (size_t i = 0; i < depth; i++)
+	{
+		math::conv_2d(maps[i], prev->get_map(i), kernals[i], stride, padding);
+	}
+}
+
+nn::matrix& nn::hidden_layer::conv2_layer::get_kernal(size_t idx)
+{
+	return kernals[idx];
+}
+
+nn::matrix& nn::hidden_layer::conv2_layer::get_map(size_t idx)
+{
+	return maps[idx];
+}
+
+nn::matrix& nn::hidden_layer::conv2_layer::get_gradient(size_t idx)
+{
+	return gradients[idx];
+}
+
+void nn::hidden_layer::conv2_layer::rand_weights(float min, float max)
+{
+	for (size_t i = 0; i < depth; i++)
+	{
+		math::rand_matrix(kernals[i], min, max);
+		bias[i] = math::rand_float(min, max);
+	}
+}
+
+nn::hidden_layer::relu_layer::relu_layer(size_t w, size_t h, size_t depth):w(w), h(h),depth(depth)
+{
+	maps = new matrix[depth](matrix(w, h));
+	gradients = new matrix[depth](matrix(w, h));
+}
+
+nn::hidden_layer::relu_layer::~relu_layer()
+{
+	delete[] maps;
+	delete[] gradients;
+}
+
+void nn::hidden_layer::relu_layer::forward(hidden_layer::conv2_layer* prev)
+{
+	if (depth != prev->depth)
+		throw numeric_exception("relu layer and conv layer depth mismatch", __FUNCTION__, __LINE__);
+
+	// do conv for each kernal
+	for (size_t i = 0; i < depth; i++)
+	{
+		maps[i] = prev->get_map(i);
+		maps[i].for_each([prev](size_t, size_t, float& num) // do relu
+			{
+				if (num < 0.0f) num = 0.0f;
+			});
+	}
+}
+
+nn::matrix& nn::hidden_layer::relu_layer::get_map(size_t idx)
+{
+	return maps[idx];
+}
+
+nn::matrix& nn::hidden_layer::relu_layer::get_gradient(size_t idx)
+{
+	return gradients[idx];
+}
+
+nn::input_layer::matrix_input::matrix_input(size_t w, size_t h)
+{
+	input = matrix(w, h);
+	input_width = w;
+	input_height = h;
+}
+
+void nn::input_layer::matrix_input::push_input(const matrix& data)
+{
+	input = data;
+}
+
+nn::matrix& nn::input_layer::matrix_input::get_input()
+{
+	return input;
+}
+
+size_t nn::input_layer::matrix_input::get_height()
+{
+	return input_height;
+}
+
+size_t nn::input_layer::matrix_input::get_width()
+{
+	return input_width;
+}

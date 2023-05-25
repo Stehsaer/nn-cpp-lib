@@ -52,7 +52,7 @@ namespace nn
 		vector& operator =(vector&& src) noexcept;
 		vector& operator =(std::initializer_list<float> list);
 
-		std::string format_str() const; // get formatted string as format: "vector(0.0,0.0...)"
+		operator std::string() const; // get formatted string as format: "vector(0.0,0.0...)"
 
 		search_result<float> max() const; // get largest element
 		search_result<float> min() const; // get largest element
@@ -60,7 +60,7 @@ namespace nn
 		
 		void for_each(std::function<void(size_t, float&)> func); // execute operation foreach element
 
-		operator bool(); // if valid, returns true
+		operator bool() const; // if valid, returns true
 	};
 
 	// 2d matrix, float format
@@ -84,10 +84,12 @@ namespace nn
 		float at(size_t x, size_t y) const;
 		float* data(); // never use this unless necessary
 
-		bool valid();
-
 		matrix& operator =(const matrix& src);
 		matrix& operator =(matrix&& src) noexcept;
+
+		void operator +=(const matrix& src);
+
+		operator std::string();
 
 		void fill(float num);
 
@@ -97,7 +99,7 @@ namespace nn
 
 		void for_each(std::function<void(size_t, size_t, float&)> func); // execute operation foreach element (x,y)
 
-		operator bool(); // if valid, returns true
+		operator bool() const; // if valid, returns true
 	};
 
 	// 3d tensor structure, consisting of numerous matrices
@@ -131,14 +133,16 @@ namespace nn
 
 		void for_each(std::function<void(size_t, size_t, size_t, float&)> func);
 
-		operator bool(); // if valid, returns true
+		operator bool() const; // if valid, returns true
 	};
 
 	namespace math
 	{
-		//== Basic algorithms
+		//== Basic algorithms (intended for SIMD accleration)
 
-		float dot(float* left, float* right, size_t num); // inner-product of two vectors (intended for avx acceleration)
+		float dot(float* left, float* right, size_t num); // inner-product of two vectors
+		void add(float* array, float addition, size_t num); // add a specfic number to all elements in array
+		void add(float* left, float* right, size_t num); // add two arrays, per-element
 
 		//== Helper functions
 
@@ -152,6 +156,7 @@ namespace nn
 
 		void flip_matrix_square(matrix& m);
 		matrix flip_matrix_any(const matrix& m);
+		matrix rotate_matrix_180(const matrix& m);
 
 		//== Convolution
 
