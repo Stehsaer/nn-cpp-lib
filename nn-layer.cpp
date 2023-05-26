@@ -8,7 +8,7 @@ nn::input_layer::vector_input::vector_input(size_t size)
 	input = vector(size);
 }
 
-void nn::input_layer::vector_input::push_input(const vector & data)
+void nn::input_layer::vector_input::push_input(const vector& data)
 {
 	if (data.size() != input_size)
 		throw nn::logic_exception("vector size mismatch!", __FUNCTION__, __LINE__);
@@ -79,7 +79,7 @@ float nn::optimizer::vector_optimizer::get_loss()
 	return loss;
 }
 
-void nn::optimizer::vector_optimizer::push_target(const vector & target)
+void nn::optimizer::vector_optimizer::push_target(const vector& target)
 {
 	if (target.size() != optimizer_size)
 		throw nn::logic_exception("vector size mismatch!", __FUNCTION__, __LINE__);
@@ -107,7 +107,7 @@ void nn::optimizer::softmax_optimizer::forward_and_grad(hidden_layer::linear_lay
 	gradient.for_each([this](size_t idx, float& num)
 		{
 			num = target[idx] - output[idx];
-			loss += - target[idx] * log(output[idx]);
+			loss += -target[idx] * log(output[idx]);
 		});
 }
 
@@ -166,9 +166,20 @@ void nn::hidden_layer::linear_layer::forward(linear_layer* prev, const activate_
 		});
 }
 
+void nn::hidden_layer::linear_layer::forward(conv2_linear_adapter_layer* prev, const activate_func* func)
+{
+	if(prev->size != num_weights)
+		throw logic_exception("size mismatch!", __FUNCTION__, __LINE__);
+
+	value.for_each([this, &prev, func](size_t idx, float& num)
+		{
+			num = func->forward(nn::vector::dot(prev->get_value(), weights[idx]) + bias);
+		});
+}
+
 void nn::hidden_layer::linear_layer::backward(optimizer::vector_optimizer* optimizer)
 {
-	if(optimizer->get_size() != num_neurons)
+	if (optimizer->get_size() != num_neurons)
 		throw logic_exception("size mismatch!", __FUNCTION__, __LINE__);
 
 	gradient = optimizer->get_gradient();
@@ -245,22 +256,14 @@ void nn::hidden_layer::linear_layer::rand_weights(float min, float max)
 	bias = nn::math::rand_float(min, max);
 }
 
-nn::hidden_layer::conv2_layer::conv2_layer(size_t w, size_t h, size_t depth, size_t kernal_size, size_t stride, size_t padding): 
+nn::hidden_layer::conv2_layer::conv2_layer(size_t w, size_t h, size_t depth, size_t kernal_size, size_t stride, size_t padding) :
 	w(w), h(h), depth(depth), kernal_size(kernal_size), stride(stride), padding(padding)
 {
-	kernals = new nn::matrix[depth](nn::matrix(kernal_size, kernal_size));
-	maps = new nn::matrix[depth](nn::matrix(w, h));
-	gradients = new nn::matrix[depth](nn::matrix(w, h));
+	kernals.resize(depth, nn::matrix(kernal_size, kernal_size));
+	maps.resize(depth, nn::matrix(w, h));
+	gradients.resize(depth, nn::matrix(w, h));
 
-	bias = new float[depth];
-}
-
-nn::hidden_layer::conv2_layer::~conv2_layer()
-{
-	delete[] maps;
-	delete[] gradients;
-	delete[] bias;
-	delete[] kernals;
+	bias.resize(depth, 0.0f);
 }
 
 void nn::hidden_layer::conv2_layer::forward(input_layer::matrix_input* prev)
@@ -269,6 +272,7 @@ void nn::hidden_layer::conv2_layer::forward(input_layer::matrix_input* prev)
 	for (size_t i = 0; i < depth; i++)
 	{
 		math::conv_2d(maps[i], prev->get_input(), kernals[i], stride, padding);
+		maps[i] += bias[i];
 	}
 }
 
@@ -320,16 +324,10 @@ void nn::hidden_layer::conv2_layer::rand_weights(float min, float max)
 	}
 }
 
-nn::hidden_layer::relu_layer::relu_layer(size_t w, size_t h, size_t depth):w(w), h(h),depth(depth)
+nn::hidden_layer::relu_layer::relu_layer(size_t w, size_t h, size_t depth) :w(w), h(h), depth(depth)
 {
-	maps = new matrix[depth](matrix(w, h));
-	gradients = new matrix[depth](matrix(w, h));
-}
-
-nn::hidden_layer::relu_layer::~relu_layer()
-{
-	delete[] maps;
-	delete[] gradients;
+	maps.resize(depth, nn::matrix(w, h));
+	gradients.resize(depth, nn::matrix(w, h));
 }
 
 void nn::hidden_layer::relu_layer::forward(hidden_layer::conv2_layer* prev)
@@ -383,4 +381,93 @@ size_t nn::input_layer::matrix_input::get_height()
 size_t nn::input_layer::matrix_input::get_width()
 {
 	return input_width;
+}
+
+nn::hidden_layer::maxpool_layer::maxpool_layer(size_t w, size_t h, size_t depth) :w(w), h(h), depth(depth)
+{
+	out_maps.resize(depth, matrix(w, h));
+	back_gradients.resize(depth, matrix(w * 2, h * 2));
+}
+
+void nn::hidden_layer::maxpool_layer::forward(hidden_layer::relu_layer* prev)
+{
+	if (prev->w != w * 2 || prev->h != h * 2 || prev->depth != depth)
+		throw numeric_exception("layer parameters mismatch", __FUNCTION__, __LINE__);
+
+	// down sampling
+	for (size_t d = 0; d < depth; d++)
+	{
+		auto& prev_map = prev->get_map(d);
+		auto& map = out_maps[d];
+		map.fill(-INFINITY);
+
+		prev_map.for_each([&map](size_t x, size_t y, float& num)
+			{
+				float& tgt = map.at(x / 2, y / 2);
+				if (tgt < num)
+					tgt = num;
+			});
+	}
+}
+
+void nn::hidden_layer::maxpool_layer::forward_and_grad(hidden_layer::relu_layer* prev)
+{
+	forward(prev);
+
+	for (size_t d = 0; d < depth; d++)
+	{
+		prev->get_map(d).for_each([this, d](size_t x, size_t y, float& num)
+			{
+				if (num == out_maps[d].at(x / 2, y / 2)) // is the largest one
+				{
+					back_gradients[d].at(x, y) = 1.0f;
+				}
+				else // not the largest ones
+				{
+					back_gradients[d].at(x, y) = 0.0f;
+				}
+			});
+	}
+}
+
+nn::matrix& nn::hidden_layer::maxpool_layer::get_map(size_t idx)
+{
+	return out_maps[idx];
+}
+
+nn::matrix& nn::hidden_layer::maxpool_layer::get_gradient(size_t idx)
+{
+	return back_gradients[idx];
+}
+
+nn::hidden_layer::conv2_linear_adapter_layer::conv2_linear_adapter_layer(size_t w, size_t h, size_t depth) :w(w), h(h), depth(depth), size(w*h*depth)
+{
+	out_vector = vector(size);
+	gradients.resize(depth, matrix(w, h));
+}
+
+void nn::hidden_layer::conv2_linear_adapter_layer::forward(hidden_layer::maxpool_layer* prev)
+{
+	// check input
+	if (prev->w != w || prev->h != h || prev->depth != depth)
+		throw numeric_exception("width, height or depth mismatch", __FUNCTION__, __LINE__);
+
+	// re-arrange matrix to vector
+	for (size_t d = 0; d < depth; d++)
+	{
+		prev->get_map(d).for_each([this, d](size_t x, size_t y, float& num)
+			{
+				out_vector[d * w * h + y * w + x] = num;
+			});
+	}
+}
+
+nn::matrix& nn::hidden_layer::conv2_linear_adapter_layer::get_gradient(size_t idx)
+{
+	return gradients[idx];
+}
+
+nn::vector& nn::hidden_layer::conv2_linear_adapter_layer::get_value()
+{
+	return out_vector;
 }

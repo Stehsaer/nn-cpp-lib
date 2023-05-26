@@ -1,13 +1,3 @@
-#define _CRT_SECURE_NO_WARNINGS
-
-#define STB_IMAGE_WRITE_STATIC
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb-img/stb_image_write.h"
-
-#define STB_IMAGE_STATIC
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb-img/stb_image.h"
-
 #include "nn-math.h"
 
 #include <random>
@@ -371,7 +361,7 @@ nn::vector& nn::vector::operator =(std::initializer_list<float> list)
 	return *this;
 }
 
-nn::vector::operator std::string() const
+std::string nn::vector::to_string() const
 {
 	std::string formatted = "vector(";
 
@@ -431,11 +421,6 @@ void nn::vector::for_each(std::function<void(size_t, float&)> func)
 {
 	for (size_t i = 0; i < vector_size; i++)
 		func(i, vector_data[i]);
-}
-
-nn::vector::operator bool() const
-{
-	return vector_data != nullptr && vector_size > 0;
 }
 
 nn::matrix::matrix()
@@ -554,7 +539,12 @@ void nn::matrix::operator+=(const matrix& src)
 	math::add(matrix_data, src.matrix_data, w * h);
 }
 
-nn::matrix::operator std::string()
+void nn::matrix::operator+=(float num)
+{
+	math::add(matrix_data, num, w * h);
+}
+
+std::string nn::matrix::to_string() const
 {
 	std::string out = "matrix(\n";
 
@@ -589,50 +579,11 @@ nn::vector nn::matrix::to_vector() const
 	return v;
 }
 
-void nn::matrix::export_image(std::string path, int quality)
-{
-	if (w > 65535 || h > 65535)
-		throw nn::numeric_exception("width or height too large", __FUNCTION__, __LINE__);
-
-	std::unique_ptr<unsigned char> dat(new unsigned char[w * h]);
-
-	for (size_t i = 0; i < w * h; i++)
-	{
-		dat.get()[i] = unsigned char(matrix_data[i] * 255.0f);
-	}
-
-	stbi_write_jpg(path.c_str(), static_cast<int>(w), static_cast<int>(h), 1, dat.get(), quality);
-}
-
-nn::matrix nn::matrix::matrix_from_image(std::string path)
-{
-	int x, y, comp;
-	unsigned char* data = stbi_load(path.c_str(), &x, &y, &comp, 1);
-	if (!data)
-		throw nn::logic_exception("read file failed", __FUNCTION__, __LINE__);
-
-	matrix m(x, y);
-
-	for (size_t i = 0; i < static_cast<size_t>(x) * y; i++)
-	{
-		m.data()[i] = data[i] / 255.0f;
-	}
-
-	free(data);
-
-	return m;
-}
-
 void nn::matrix::for_each(std::function<void(size_t, size_t, float&)> func)
 {
 	for (size_t x = 0; x < w; x++)
 		for (size_t y = 0; y < h; y++)
 			func(x, y, matrix_data[y * w + x]);
-}
-
-nn::matrix::operator bool() const
-{
-	return w != 0 && h != 0 && matrix_data != nullptr;
 }
 
 nn::tensor::tensor()
@@ -731,38 +682,6 @@ nn::tensor& nn::tensor::operator=(tensor&& src) noexcept
 	return *this;
 }
 
-void nn::tensor::export_image(std::string path, int quality)
-{
-	if (c != 3)
-		throw nn::logic_exception("tensor doesn't have exactly 3 channels", __FUNCTION__, __LINE__);
-
-	std::unique_ptr<unsigned char> reordered_data(new unsigned char[3 * w * h]);
-
-	// reorder data
-	for (size_t c = 0; c < 3; c++)
-		for (size_t x = 0; x < 32; x++)
-			for (size_t y = 0; y < 32; y++)
-				reordered_data.get()[x * h * 3 + y * 3 + c] = unsigned char(matrices[c].at(x, y) * 255.0f);
-
-	if (!stbi_write_jpg(path.c_str(), 32, 32, 3, reordered_data.get(), quality))
-		throw nn::logic_exception("write jpg failed", __FUNCTION__, __LINE__);
-}
-
-nn::tensor nn::tensor::tensor_from_image(std::string path)
-{
-	int w, h, channel;
-	unsigned char* img = stbi_load(path.c_str(), &w, &h, &channel, 3);
-
-	nn::tensor out(w, h, 3);
-
-	out.for_each([img, &out, w, h](size_t x, size_t y, size_t channel, float& num)
-		{
-			num = img[x * h * 3 + y * 3 + channel] / 255.0f;
-		});
-
-	return out;
-}
-
 void nn::tensor::fill(float num)
 {
 	for (auto& matrix : matrices)
@@ -777,9 +696,4 @@ void nn::tensor::for_each(std::function<void(size_t, size_t, size_t, float&)> fu
 			for (size_t y = 0; y < h; y++)
 				func(x, y, channel, at(x, y, channel));
 	}
-}
-
-nn::tensor::operator bool() const
-{
-	return w != 0 && h != 0 && c != 0 && !matrices.empty();
 }

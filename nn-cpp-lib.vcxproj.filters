@@ -39,6 +39,9 @@
     <ClCompile Include="nn-activate-function.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="nn-image.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="nn-exception.h">
@@ -69,6 +72,9 @@
       <Filter>Header\Helper</Filter>
     </ClInclude>
     <ClInclude Include="nn-example.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="nn-image.h">
       <Filter>Header</Filter>
     </ClInclude>
   </ItemGroup>

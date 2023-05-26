@@ -146,6 +146,7 @@
     <ClCompile Include="nn-activate-function.h" />
     <ClCompile Include="nn-dataset.cpp" />
     <ClCompile Include="nn-file.cpp" />
+    <ClCompile Include="nn-image.cpp" />
     <ClCompile Include="nn-layer.cpp" />
     <ClCompile Include="nn-math.cpp" />
   </ItemGroup>
@@ -155,6 +156,7 @@
     <ClInclude Include="nn-example.h" />
     <ClInclude Include="nn-exception.h" />
     <ClInclude Include="nn-file.h" />
+    <ClInclude Include="nn-image.h" />
     <ClInclude Include="nn-layer.h" />
     <ClInclude Include="nn-math.h" />
     <ClInclude Include="stb-img\stb_image.h" />

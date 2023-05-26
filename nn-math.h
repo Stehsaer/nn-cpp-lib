@@ -52,15 +52,13 @@ namespace nn
 		vector& operator =(vector&& src) noexcept;
 		vector& operator =(std::initializer_list<float> list);
 
-		operator std::string() const; // get formatted string as format: "vector(0.0,0.0...)"
+		std::string to_string() const; // get formatted string as format: "vector(0.0,0.0...)"
 
 		search_result<float> max() const; // get largest element
 		search_result<float> min() const; // get largest element
 		float sum() const;
 		
 		void for_each(std::function<void(size_t, float&)> func); // execute operation foreach element
-
-		operator bool() const; // if valid, returns true
 	};
 
 	// 2d matrix, float format
@@ -88,18 +86,15 @@ namespace nn
 		matrix& operator =(matrix&& src) noexcept;
 
 		void operator +=(const matrix& src);
+		void operator +=(float num);
 
-		operator std::string();
+		std::string to_string() const;
 
 		void fill(float num);
 
 		vector to_vector() const;
-		void export_image(std::string path, int quality = 90);
-		static matrix matrix_from_image(std::string path);
 
 		void for_each(std::function<void(size_t, size_t, float&)> func); // execute operation foreach element (x,y)
-
-		operator bool() const; // if valid, returns true
 	};
 
 	// 3d tensor structure, consisting of numerous matrices
@@ -126,14 +121,9 @@ namespace nn
 		tensor& operator =(const tensor& src);
 		tensor& operator =(tensor&& src) noexcept;
 
-		void export_image(std::string path, int quality = 90);
-		static tensor tensor_from_image(std::string path);
-
 		void fill(float num);
 
 		void for_each(std::function<void(size_t, size_t, size_t, float&)> func);
-
-		operator bool() const; // if valid, returns true
 	};
 
 	namespace math

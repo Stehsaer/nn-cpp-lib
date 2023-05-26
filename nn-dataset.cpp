@@ -17,11 +17,6 @@ size_t nn::cifar10_data::get_label()
 	return data_label;
 }
 
-void nn::cifar10_data::export_image(std::string path, int quality)
-{
-	data.export_image(path, quality);
-}
-
 nn::cifar10_dataset::~cifar10_dataset()
 {
 	for (auto ptr : set)
@@ -72,16 +67,6 @@ std::string nn::cifar10_dataset::get_label(size_t index)
 {
 	static const std::array<std::string, 10> labels = { "airplane","automobile","bird","cat","deer","dog","frog","horse","ship","truck" };
 	return labels[index];
-}
-
-void nn::cifar10_dataset::export_image(std::string path, size_t index, int quality)
-{
-	if (index >= set.size())
-	{
-		throw nn::numeric_exception("index out-of-range", __FUNCTION__, __LINE__);
-	}
-
-	set[index]->export_image(path, quality);
 }
 
 nn::mnist_dataset::~mnist_dataset()
@@ -206,9 +191,4 @@ size_t nn::mnist_data::get_label()
 void nn::mnist_data::gen_targets(size_t max_label)
 {
 	target = math::one_hot(max_label, data_label);
-}
-
-void nn::mnist_data::export_image(std::string path, int quality)
-{
-	data.export_image(path, quality);
 }

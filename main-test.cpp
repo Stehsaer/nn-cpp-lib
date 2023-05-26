@@ -11,7 +11,7 @@
 
 void print_vector(const nn::vector& v)
 {
-	std::cout << v << std::endl;
+	std::cout << v.to_string() << std::endl;
 }
 
 template<typename T>
@@ -73,17 +73,28 @@ int main()
 	set.add_source(get_line("data-path"), get_line("label-path"));
 
 	nn::input_layer::matrix_input input(28, 28);
-	nn::hidden_layer::conv2_layer conv1(28, 28, 1, 3, 1, 1);
-	nn::hidden_layer::relu_layer relu(28, 28, 1);
+	nn::hidden_layer::conv2_layer conv1(28, 28, 2, 3, 1, 1);
+	nn::hidden_layer::relu_layer relu(28, 28, 2);
+	nn::hidden_layer::maxpool_layer pool(14, 14, 2);
+	nn::hidden_layer::conv2_linear_adapter_layer adapter(14, 14, 2);
+	nn::hidden_layer::linear_layer linear(10, 14 * 14 * 2);
+
+	const nn::activate_func* func = new nn::leaky_relu_func();
 
 	input.push_input(set.set[1]->get_data());
 
 	conv1.rand_weights(0.1, 0.9);
+	linear.rand_weights(0.1, 0.9);
 
 	conv1.forward(&input);
 	relu.forward(&conv1);
-	
-	relu.get_map(0).export_image("conv.jpg", 100);
-	
+	pool.forward_and_grad(&relu);
+	adapter.forward(&pool);
+	linear.forward(&adapter, func);
+
+	std::cout << linear.get_value().to_string();
+
+	//nn::image::image_save_matrix_jpg(pool.get_gradient(1), "out.jpg");
+		
 	return 0;
 }

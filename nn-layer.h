@@ -9,6 +9,8 @@
 #include "nn-math.h"
 #include "nn-activate-function.h"
 
+#include <vector>
+
 namespace nn
 {
 	//== predefinitions
@@ -50,7 +52,7 @@ namespace nn
 		public:
 			vector_input(size_t size);
 
-			void push_input(const vector & data);
+			void push_input(const vector& data);
 
 			vector& get_input();
 			size_t get_size();
@@ -105,12 +107,13 @@ namespace nn
 
 			void forward(input_layer::vector_input* prev, const activate_func* func);
 			void forward(linear_layer* prev, const activate_func* func);
+			void forward(conv2_linear_adapter_layer* prev, const activate_func* func);
 
 			void backward(optimizer::vector_optimizer* optimizer);
 			void backward(linear_layer* last);
 
 			void update_weights(input_layer::vector_input* prev, const activate_func* func, float learning_rate);
-			void update_weights(hidden_layer::linear_layer* prev, const activate_func* func, float learning_rate);
+			void update_weights(linear_layer* prev, const activate_func* func, float learning_rate);
 
 			vector& get_value();
 			vector& get_gradient();
@@ -123,23 +126,22 @@ namespace nn
 		struct conv2_layer
 		{
 		private:
-			matrix* kernals; // convolution kernals
-			matrix* maps, * gradients; // maps: convolution result; gradients: as the word says
+			std::vector<matrix> kernals; // convolution kernals
+			std::vector<matrix> maps, gradients; // maps: convolution result; gradients: as the word says
 			size_t stride, padding;
-			float* bias;
+			std::vector<float> bias;
 
 		public:
 			const size_t w, h, depth, kernal_size; // in conv-related layers we choose to expose these parameters as const
 
-			conv2_layer(size_t w, size_t h,size_t depth, size_t kernal_size, size_t stride = 1, size_t padding = 0);
-			~conv2_layer(); // manual release memory
+			conv2_layer(size_t w, size_t h, size_t depth, size_t kernal_size, size_t stride = 1, size_t padding = 0);
 
 			void forward(input_layer::matrix_input* prev);
-			void forward(hidden_layer::conv2_layer* prev);
-			void forward(hidden_layer::relu_layer* prev);
+			void forward(conv2_layer* prev);
+			void forward(relu_layer* prev);
 
-			void backward(hidden_layer::conv2_layer* last);
-			void backward(hidden_layer::relu_layer* last);
+			void backward(conv2_layer* last);
+			void backward(relu_layer* last);
 
 			matrix& get_kernal(size_t idx);
 			matrix& get_map(size_t idx);
@@ -148,25 +150,70 @@ namespace nn
 			void rand_weights(float min, float max);
 		};
 
-		struct relu_layer
+		// max-pool with down-sampling factor of 2
+		struct maxpool_layer
 		{
 		private:
-			matrix* maps, * gradients;
-			
+			std::vector<matrix> out_maps, back_gradients; // store masks in back_gradients with 1.0f and 0.0f
+
 		public:
-			const size_t w, h, depth;
+			const size_t w, h, depth; // w,h: actual output size, multiply by 2 to get previous size
 
-			relu_layer(size_t w, size_t h, size_t depth);
-			~relu_layer();
+			maxpool_layer(size_t w, size_t h, size_t depth);
 
-			void forward(hidden_layer::conv2_layer* prev);
+			void forward(conv2_layer* prev);
+			void forward(relu_layer* prev);
 
-			void backward(hidden_layer::conv2_layer* prev);
+			void forward_and_grad(conv2_layer* prev); // we do gradient pre-calculation(mask) while we forward the value
+			void forward_and_grad(relu_layer* prev);
+
+			void backward(conv2_linear_adapter_layer* last);
+			void backward(conv2_layer* last);
 
 			matrix& get_map(size_t idx);
 			matrix& get_gradient(size_t idx);
 		};
 
+		struct relu_layer
+		{
+		private:
+			std::vector<matrix> maps, gradients;
+
+		public:
+			const size_t w, h, depth;
+
+			relu_layer(size_t w, size_t h, size_t depth);
+
+			void forward(conv2_layer* prev);
+
+			void backward(conv2_layer* last);
+			void backward(maxpool_layer* last);
+
+			matrix& get_map(size_t idx);
+			matrix& get_gradient(size_t idx);
+		};
+
+		struct conv2_linear_adapter_layer
+		{
+		private:
+			std::vector<matrix> gradients;
+			vector out_vector;
+
+		public:
+			const size_t w, h, depth, size;
+
+			conv2_linear_adapter_layer(size_t w, size_t h, size_t depth);
+
+			void forward(conv2_layer* prev);
+			void forward(relu_layer* prev);
+			void forward(maxpool_layer* prev);
+
+
+			matrix& get_gradient(size_t idx);
+			vector& get_value();
+		};
+
+		// WIP
 		struct conv3_layer
 		{
 		private:
@@ -194,7 +241,7 @@ namespace nn
 			vector& get_output();
 			size_t get_size();
 			float get_loss();
-			void push_target(const vector & target);
+			void push_target(const vector& target);
 
 			virtual void forward_and_grad(hidden_layer::linear_layer* layer) = 0;
 			virtual void forward(hidden_layer::linear_layer* layer) = 0;
